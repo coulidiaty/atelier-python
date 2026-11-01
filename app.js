@@ -1,6 +1,7 @@
 /* Atelier Python : le moteur du site.
    Les leçons sont dans lecons/*.js et s'enregistrent avec Atelier.chapter({...}).
-   Le guide pour écrire une leçon est dans docs/CONTENU.md. */
+   Le guide pour écrire une leçon est dans docs/CONTENU.md.
+   Les comptes et le classement (Supabase) sont dans cloud.js, qui se branche avec Atelier.on() et Atelier.ext. */
 (() => {
 const PARTS = [
   { id:'bases', title:'Les bases de Python', short:'Bases' },
@@ -22,19 +23,56 @@ const has = (r, re) => !!(r && r.out && re.test(r.out));
 
 /* ================= Icônes ================= */
 const PYO = `<svg class="pyo" viewBox="0 0 40 40" aria-hidden="true"><circle class="p-skin" cx="20" cy="20" r="19"/><circle class="p-eye" cx="14" cy="17" r="4.4"/><circle class="p-eye" cx="26" cy="17" r="4.4"/><circle class="p-pupil" cx="15" cy="18" r="2.1"/><circle class="p-pupil" cx="27" cy="18" r="2.1"/><path class="p-mouth" d="M14 25.5 Q20 30.5 26 25.5"/><path class="p-tongue" d="M20 28.3 v4.2 M20 32.5 l-2.2 2.2 M20 32.5 l2.2 2.2"/></svg>`;
-const I_CHECK = `<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5"/></svg>`;
-const I_LOCK = `<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M4.5 6.5V4.8a2.5 2.5 0 0 1 5 0v1.7"/><rect x="3" y="6.5" width="8" height="6" rx="1.5"/></svg>`;
-const I_HOME = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 9.5L10 3.5l7 6M5 8v8.5h10V8"/></svg>`;
-const I_CARDS = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4.5h12v11H4zM7 8h6M7 11h4"/></svg>`;
+const I = {
+  check:`<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5"/></svg>`,
+  lock:`<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M4.5 6.5V4.8a2.5 2.5 0 0 1 5 0v1.7"/><rect x="3" y="6.5" width="8" height="6" rx="1.5"/></svg>`,
+  home:`<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 9.5L10 3.5l7 6M5 8v8.5h10V8"/></svg>`,
+  cards:`<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4.5h12v11H4zM7 8h6M7 11h4"/></svg>`,
+  trophy:`<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6.5 3.5h7v4a3.5 3.5 0 0 1-7 0zM6.5 5H3.5a2.5 2.5 0 0 0 3 3M13.5 5h3a2.5 2.5 0 0 1-3 3M10 11v3M7 16.5h6"/></svg>`,
+  gear:`<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4"/></svg>`,
+  panel:`<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4.5h14v11H3zM8 4.5v11"/></svg>`,
+  flame:`<svg viewBox="0 0 20 20" aria-hidden="true"><path class="fl-out" d="M10 2c.6 3-3.5 4.6-3.5 9a3.5 3.5 0 0 0 7 0c0-1.8-.8-3-1.6-4 .1 1.6-.6 2.6-1.4 2.9C11 7.5 11.6 4.5 10 2z"/></svg>`
+};
 const HOW_ICONS = {
   say:`<svg viewBox="0 0 20 20"><path d="M3.5 4.5h13v8h-7l-4 3v-3h-2z"/></svg>`,
   guess:`<svg viewBox="0 0 20 20"><path d="M7.5 7.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M10 14.5v.5"/></svg>`,
   code:`<svg viewBox="0 0 20 20"><path d="M7 6l-4 4 4 4M13 6l4 4-4 4"/></svg>`,
   bug:`<svg viewBox="0 0 20 20"><path d="M7 7.5a3 3 0 0 1 6 0v4a3 3 0 0 1-6 0zM4 9h3M13 9h3M4 13.5h3M13 13.5h3M8 4.5l-1-1.5M12 4.5l1-1.5"/></svg>`,
   rev:`<svg viewBox="0 0 20 20"><path d="M15.5 8A6 6 0 1 0 16 11M15.5 3.5V8H11"/></svg>`,
-  card:`<svg viewBox="0 0 20 20"><path d="M4 4.5h12v11H4zM7 8h6M7 11h4"/></svg>`,
   java:`<svg viewBox="0 0 20 20"><path d="M3 5.5h6v9H3zM11 5.5h6v9h-6z"/></svg>`
 };
+
+/* ================= Jeu : XP, niveaux, série, badges ================= */
+const LEVELS = [
+  [0, 'Œuf'], [100, 'Bébé serpent'], [300, 'Couleuvre'], [600, 'Vipère curieuse'], [1000, 'Serpent des blés'],
+  [1500, 'Boa codeur'], [2100, 'Cobra du terminal'], [2800, 'Anaconda des boucles'], [3700, 'Mamba des fonctions'],
+  [4800, 'Python des objets'], [6200, 'Python royal'], [8000, 'Python légendaire']
+];
+const XP = { quiz:[10, 3], code:[20, 12], bug:[25, 15], fill:[15, 8], run:2, lesson:20, perfect:15 };
+const BADGES = [
+  { id:'premier-pas', icon:'🥚', name:'Premier pas', desc:'Terminer sa première leçon' },
+  { id:'bug-1', icon:'🐞', name:'Chasseur de bugs', desc:'Réparer son premier bug' },
+  { id:'sans-faute', icon:'🎯', name:'Sans faute', desc:'Finir une leçon sans aucune erreur' },
+  { id:'combo-5', icon:'⚡', name:'Combo ×5', desc:'5 réussites d’affilée du premier coup' },
+  { id:'combo-10', icon:'🌩️', name:'Combo ×10', desc:'10 réussites d’affilée du premier coup' },
+  { id:'serie-3', icon:'🔥', name:'Série de 3 jours', desc:'Apprendre 3 jours de suite' },
+  { id:'serie-7', icon:'📅', name:'Une semaine', desc:'Apprendre 7 jours de suite' },
+  { id:'serie-30', icon:'🏔️', name:'Un mois', desc:'Apprendre 30 jours de suite' },
+  { id:'objectif-7', icon:'✅', name:'Régulier', desc:'Atteindre l’objectif du jour 7 fois' },
+  { id:'chapitre', icon:'📗', name:'Chapitre bouclé', desc:'Terminer un chapitre entier' },
+  { id:'bases', icon:'🐍', name:'Bases maîtrisées', desc:'Terminer toute la partie bases' },
+  { id:'poo', icon:'🏛️', name:'Architecte objet', desc:'Terminer toute la partie POO' },
+  { id:'xp-1000', icon:'💎', name:'1 000 XP', desc:'Gagner 1 000 XP au total' },
+  { id:'nuit', icon:'🦉', name:'Oiseau de nuit', desc:'Finir une leçon après 22 h' },
+  { id:'matin', icon:'🌅', name:'Lève-tôt', desc:'Finir une leçon avant 8 h' }
+];
+const today = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const dayDiff = (a, b) => Math.round((new Date(b + 'T12:00') - new Date(a + 'T12:00')) / 864e5);
+function levelOf(xp){
+  let i = 0; while (i + 1 < LEVELS.length && xp >= LEVELS[i + 1][0]) i++;
+  const [base, name] = LEVELS[i], next = LEVELS[i + 1];
+  return { n:i + 1, name, base, next:next ? next[0] : null, pct:next ? (xp - base) / (next[0] - base) : 1 };
+}
 
 /* ================= Enregistrement des chapitres ================= */
 function chapter(c){
@@ -52,10 +90,24 @@ function chapter(c){
 /* ================= État ================= */
 const KEY = 'atelier-python-v1';
 let ORDER = [], TOTAL = 0;
-function fresh(){ return { done:{}, cur:{}, st:{}, unlock:false }; }
-function load(){ try { const v = JSON.parse(localStorage.getItem(KEY)); if (v && v.done && v.cur && v.st) return v; } catch(_){} return null; }
+const hooks = {};
+const on = (ev, fn) => (hooks[ev] = hooks[ev] || []).push(fn);
+const emit = (ev, d) => (hooks[ev] || []).forEach(fn => { try { fn(d); } catch (e) { console.error(e); } });
+function fresh(){
+  return { done:{}, cur:{}, st:{}, unlock:false, xp:0, combo:0, last:null,
+    streak:{ count:0, best:0, last:null, freezes:0 }, daily:{ date:null, xp:0, lessons:0 }, goal:50, goalDays:0,
+    badges:{}, stats:{ first:0, graded:0, bestCombo:0 }, ls:{}, settings:{ sound:true, theme:'auto', motion:true, side:'open' }, updated:0 };
+}
+function migrate(v){
+  const f = fresh();
+  for (const k of Object.keys(f)) if (v[k] === undefined) v[k] = f[k];
+  v.streak = Object.assign(f.streak, v.streak); v.daily = Object.assign(f.daily, v.daily);
+  v.stats = Object.assign(f.stats, v.stats); v.settings = Object.assign(f.settings, v.settings);
+  return v;
+}
+function load(){ try { const v = JSON.parse(localStorage.getItem(KEY)); if (v && v.done && v.cur && v.st) return migrate(v); } catch(_){} return null; }
 let S = fresh();
-function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(_){} }
+function save(){ S.updated = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(_){} emit('save', S); }
 function stOf(lid){
   const L = LES[lid];
   if (!S.st[lid] || S.st[lid].length !== L.steps.length) S.st[lid] = L.steps.map(s => ({ code:s.code || '', done:false, out:null, err:null, mem:null, picked:[], hints:0, tries:0, fb:null, fill:null }));
@@ -72,6 +124,33 @@ function available(lid){
 const doneCount = () => ORDER.filter(l => S.done[l]).length;
 const nextIn = p => partOrder(p).find(l => !S.done[l]);
 const nextLesson = () => nextIn('bases') || nextIn('poo');
+const resumeLesson = () => (S.last && LES[S.last] && !S.done[S.last]) ? S.last : nextLesson();
+function dailyXp(){ if (S.daily.date !== today()) S.daily = { date:today(), xp:0, lessons:0 }; return S.daily; }
+function streakAlive(){ const s = S.streak; if (!s.last) return 0; const d = dayDiff(s.last, today()); return d <= 1 || (d === 2 && s.freezes > 0) ? s.count : 0; }
+
+/* Version légère de l'état, pour la synchronisation (sans les sorties de console). */
+function exportState(){
+  const st = {};
+  for (const [lid, arr] of Object.entries(S.st)) st[lid] = arr.map(x => ({ code:x.code, done:x.done, picked:x.picked, hints:x.hints, tries:x.tries, fill:x.fill, skipped:x.skipped, fb:x.fb && x.fb.ok ? x.fb : null }));
+  return Object.assign({}, S, { st });
+}
+function mergeState(remote){
+  if (!remote || !remote.done) return;
+  const r = migrate(remote), L = S;
+  for (const id of Object.keys(r.done)) if (r.done[id]) L.done[id] = true;
+  for (const [id, c] of Object.entries(r.cur)) {
+    if (L.cur[id] === undefined || c > L.cur[id]) { L.cur[id] = c; if (r.st[id]) L.st[id] = r.st[id].map(x => Object.assign({ out:null, err:null, mem:null }, x)); }
+  }
+  L.xp = Math.max(L.xp, r.xp);
+  if (r.streak.last && (!L.streak.last || r.streak.last > L.streak.last || (r.streak.last === L.streak.last && r.streak.count > L.streak.count))) L.streak = r.streak;
+  L.streak.best = Math.max(L.streak.best, r.streak.best);
+  for (const [b, d] of Object.entries(r.badges)) if (!L.badges[b]) L.badges[b] = d;
+  if (r.daily.date === L.daily.date) L.daily.xp = Math.max(L.daily.xp, r.daily.xp); else if (r.daily.date > (L.daily.date || '')) L.daily = r.daily;
+  L.goalDays = Math.max(L.goalDays, r.goalDays);
+  for (const k of Object.keys(r.stats)) L.stats[k] = Math.max(L.stats[k] || 0, r.stats[k] || 0);
+  L.ls = Object.assign({}, r.ls, L.ls);
+  save();
+}
 
 /* ================= Python (Skulpt) ================= */
 const TYPE = { str:'texte (str)', int:'nombre entier (int)', float:'nombre à virgule (float)', bool:'vrai ou faux (bool)', list:'liste (list)', dict:'dictionnaire (dict)', tuple:'tuple', set:'ensemble (set)', NoneType:'rien (None)' };
@@ -84,15 +163,11 @@ function reprOf(v){
   try { const r = Sk.misceval.objectRepr(v); return typeof r === 'string' ? r : (r && r.v !== undefined) ? r.v : String(r); } catch(_) { return '?'; }
 }
 function attrsOf(v){
-  // Attributs d'un objet créé à partir d'une classe écrite par l'élève.
   const d = v && v.$d; if (!d || !d.tp$iter) return null;
   const rows = [];
   try {
     const it = Sk.abstr.iter(d);
-    for (let k = it.tp$iternext(); k !== undefined; k = it.tp$iternext()) {
-      const name = k.v !== undefined ? k.v : String(k);
-      rows.push({ name, repr:reprOf(d.mp$subscript(k)) });
-    }
+    for (let k = it.tp$iternext(); k !== undefined; k = it.tp$iternext()) rows.push({ name:k.v !== undefined ? k.v : String(k), repr:reprOf(d.mp$subscript(k)) });
   } catch(_) { return null; }
   return rows;
 }
@@ -155,8 +230,7 @@ function runPy(code, o = {}){
     .then(m => ({ out, err:null, mem:readMem(m) }), e => ({ out, err:explain(e), mem:null }));
 }
 
-/* ================= Exercices à trous (Java ou Python) ================= */
-// Dans tpl, un trou s'écrit [[réponse]] ou [[réponse|autre réponse acceptée]].
+/* ================= Exercices à trous ================= */
 function parseFill(tpl){
   const parts = []; const re = /\[\[(.+?)\]\]/g; let last = 0, m;
   while ((m = re.exec(tpl))) { parts.push({ text:tpl.slice(last, m.index) }); parts.push({ blank:m[1].split('|') }); last = re.lastIndex; }
@@ -165,42 +239,199 @@ function parseFill(tpl){
 }
 const fillNorm = s => s.trim().replace(/\s+/g, ' ');
 
+/* ================= Sons et célébrations ================= */
+let actx = null;
+function sound(kind){
+  if (!S.settings.sound) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const seqs = { ok:[[660, .07], [990, .12]], ko:[[240, .12], [190, .16]], level:[[523, .09], [659, .09], [784, .09], [1047, .22]], lesson:[[392, .1], [523, .1], [659, .1], [784, .1], [1047, .3]], badge:[[880, .08], [1175, .08], [1568, .18]], pop:[[740, .05]] };
+    let t = actx.currentTime;
+    for (const [f, d] of seqs[kind] || []) {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = kind === 'ko' ? 'triangle' : 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.18, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g).connect(actx.destination); o.start(t); o.stop(t + d + 0.02); t += d * 0.85;
+    }
+  } catch(_) {}
+}
+const motionOK = () => S.settings.motion && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+function confetti(power = 1){
+  if (!motionOK()) return;
+  const c = document.createElement('canvas'); c.className = 'confetti'; document.body.appendChild(c);
+  const dpr = Math.min(2, window.devicePixelRatio || 1), W = innerWidth, H = innerHeight;
+  c.width = W * dpr; c.height = H * dpr; const g = c.getContext('2d'); g.scale(dpr, dpr);
+  const cols = ['#2A8770', '#E8922F', '#54C2A3', '#F4B55E', '#2F6DB3', '#E76F2E', '#F07B70'];
+  const P = Array.from({ length:Math.round(140 * power) }, () => ({ x:W / 2 + (Math.random() - .5) * W * .3, y:H * .35, vx:(Math.random() - .5) * 14, vy:-Math.random() * 14 - 4, r:Math.random() * 6 + 4, a:Math.random() * 6, va:(Math.random() - .5) * .3, c:cols[Math.floor(Math.random() * cols.length)], s:Math.random() < .5 }));
+  const t0 = performance.now();
+  (function frame(t){
+    const k = (t - t0) / 2400; g.clearRect(0, 0, W, H);
+    for (const p of P) { p.vy += .35; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.a += p.va; g.save(); g.translate(p.x, p.y); g.rotate(p.a); g.globalAlpha = Math.max(0, 1 - k); g.fillStyle = p.c; if (p.s) g.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); else { g.beginPath(); g.arc(0, 0, p.r / 2.4, 0, 7); g.fill(); } g.restore(); }
+    if (k < 1) requestAnimationFrame(frame); else c.remove();
+  })(t0);
+}
+function popAt(el, text, cls = ''){
+  const r = el ? el.getBoundingClientRect() : { left:innerWidth / 2, top:innerHeight / 2, width:0 };
+  const s = document.createElement('span'); s.className = 'xp-pop ' + cls; s.textContent = text;
+  s.style.left = Math.min(innerWidth - 90, Math.max(10, r.left + r.width / 2 - 30)) + 'px'; s.style.top = (r.top - 8) + 'px';
+  document.body.appendChild(s); setTimeout(() => s.remove(), 1400);
+}
+const toasts = [];
+function toast(msg, icon){
+  toasts.push([msg, icon]);
+  if (toasts.length === 1) showToast();
+}
+function showToast(){
+  const [msg, icon] = toasts[0];
+  const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status');
+  t.innerHTML = (icon ? `<span class="t-ic">${icon}</span>` : '') + `<span>${msg}</span>`;
+  document.body.appendChild(t);
+  setTimeout(() => { t.remove(); toasts.shift(); if (toasts.length) showToast(); }, toasts.length > 1 ? 2200 : 3200);
+}
+function overlay(html){
+  document.querySelectorAll('.overlay').forEach(o => o.remove());
+  const o = document.createElement('div'); o.className = 'overlay'; o.innerHTML = `<div class="ov-card" role="dialog" aria-modal="true">${html}<div class="actions"><button type="button" class="btn" data-close>Super !</button></div></div>`;
+  document.body.appendChild(o);
+  const close = () => o.remove();
+  o.addEventListener('click', e => { if (e.target === o || e.target.closest('[data-close]')) close(); });
+  setTimeout(() => { const b = o.querySelector('[data-close]'); if (b) b.focus(); }, 50);
+}
+
+/* Gagner de l'XP. kind : quiz, code, bug, fill, run. first : réussi du premier coup. */
+function award(lid, i, kind, first, el){
+  const before = levelOf(S.xp).n, d = dailyXp(), goalBefore = d.xp >= S.goal;
+  let amount = kind === 'run' ? XP.run : XP[kind][first ? 0 : 1];
+  if (kind !== 'run') {
+    S.combo = first ? S.combo + 1 : 0;
+    S.stats.bestCombo = Math.max(S.stats.bestCombo, S.combo);
+    S.stats.graded++; if (first) S.stats.first++;
+    if (S.combo >= 3) amount += Math.min(10, 2 * (S.combo - 2));
+    const ls = S.ls[lid] = S.ls[lid] || { xp:0, first:0, graded:0, start:Date.now() };
+    ls.graded++; if (first) ls.first++;
+  }
+  gain(amount, lid);
+  popAt(el, `+${amount} XP`);
+  if (kind !== 'run') { sound(first ? 'ok' : 'pop'); if (S.combo >= 3) setTimeout(() => popAt(el, `Combo ×${S.combo}`, 'combo'), 250); }
+  if (kind === 'bug') unlockBadge('bug-1');
+  if (S.combo >= 5) unlockBadge('combo-5');
+  if (S.combo >= 10) unlockBadge('combo-10');
+  afterGain(before, goalBefore);
+}
+function gain(amount, lid){
+  S.xp += amount;
+  const d = dailyXp(); d.xp += amount;
+  if (lid) { const ls = S.ls[lid] = S.ls[lid] || { xp:0, first:0, graded:0, start:Date.now() }; ls.xp += amount; }
+  touchStreak();
+  emit('xp', amount);
+}
+function touchStreak(){
+  const s = S.streak, t = today();
+  if (s.last === t) return;
+  const gap = s.last ? dayDiff(s.last, t) : null;
+  if (gap === 1) s.count++;
+  else if (gap === 2 && s.freezes > 0) { s.freezes--; s.count++; toast('Un gel de série a sauvé ta série d’hier.', '🧊'); }
+  else s.count = 1;
+  s.last = t; s.best = Math.max(s.best, s.count);
+  if (s.count > 0 && s.count % 7 === 0 && s.freezes < 2) { s.freezes++; setTimeout(() => toast('7 jours de suite : tu gagnes un gel de série.', '🧊'), 1200); }
+  if (s.count >= 3) unlockBadge('serie-3');
+  if (s.count >= 7) unlockBadge('serie-7');
+  if (s.count >= 30) unlockBadge('serie-30');
+}
+function afterGain(levelBefore, goalBefore){
+  const lv = levelOf(S.xp);
+  if (S.xp >= 1000) unlockBadge('xp-1000');
+  if (!goalBefore && dailyXp().xp >= S.goal) {
+    S.goalDays++; if (S.goalDays >= 7) unlockBadge('objectif-7');
+    setTimeout(() => { toast(`Objectif du jour atteint : ${S.goal} XP !`, '🎉'); confetti(.5); sound('badge'); }, 500);
+  }
+  if (lv.n > levelBefore) setTimeout(() => {
+    sound('level'); confetti(1.2);
+    overlay(`<div class="ov-pyo">${PYO}</div><p class="kicker">Niveau ${lv.n}</p><h2>Tu deviens : ${lv.name} !</h2><p>Continue comme ça. ${lv.next ? `Prochain niveau à ${lv.next} XP.` : 'Tu as atteint le niveau maximum. Respect.'}</p>`);
+  }, 700);
+  renderTop();
+}
+function unlockBadge(id){
+  if (S.badges[id]) return;
+  S.badges[id] = today();
+  const b = BADGES.find(x => x.id === id);
+  setTimeout(() => { toast(`Nouveau badge : <b>${b.name}</b>`, b.icon); sound('badge'); }, 900);
+  emit('badge', id);
+}
+function lessonComplete(lid){
+  const L = LES[lid], ls = S.ls[lid] = S.ls[lid] || { xp:0, first:0, graded:0, start:Date.now() };
+  const before = levelOf(S.xp).n, goalBefore = dailyXp().xp >= S.goal;
+  const perfect = ls.graded > 0 && ls.first === ls.graded;
+  gain(XP.lesson + (perfect ? XP.perfect : 0), lid);
+  ls.end = Date.now(); ls.perfect = perfect;
+  dailyXp().lessons++;
+  unlockBadge('premier-pas');
+  if (perfect) unlockBadge('sans-faute');
+  const h = new Date().getHours(); if (h >= 22) unlockBadge('nuit'); if (h < 8) unlockBadge('matin');
+  const c = L.chap;
+  if (c.lessons.every(x => S.done[x.id])) unlockBadge('chapitre');
+  if (partOrder('bases').every(x => S.done[x])) unlockBadge('bases');
+  if (partOrder('poo').length && partOrder('poo').every(x => S.done[x])) unlockBadge('poo');
+  sound('lesson'); confetti(1);
+  afterGain(before, goalBefore);
+  emit('lesson', lid);
+}
+
 /* ================= Rendu ================= */
 const $ = id => document.getElementById(id);
 let view = { type:'home' };
 let busy = false, runToken = 0, pendingAsk = null;
+let installPrompt = null;
 
-function renderTop(){
-  const d = doneCount();
-  $('prog').innerHTML = `<span>${d} sur ${TOTAL} leçons</span><div class="bar"><i style="width:${TOTAL ? d / TOTAL * 100 : 0}%"></i></div>`;
-  $('where').textContent = view.type === 'lesson' ? `Leçon ${LES[view.id].num} · ${LES[view.id].title}` : view.type === 'fiches' ? 'Mes fiches' : 'Accueil';
+function goalRing(size = 30){
+  const d = dailyXp(), pct = Math.min(1, d.xp / S.goal), r = size / 2 - 3, c = 2 * Math.PI * r;
+  return `<svg class="ring${pct >= 1 ? ' full' : ''}" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" aria-hidden="true"><circle class="r-bg" cx="${size / 2}" cy="${size / 2}" r="${r}"/><circle class="r-fg" cx="${size / 2}" cy="${size / 2}" r="${r}" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - pct)}" transform="rotate(-90 ${size / 2} ${size / 2})"/></svg>`;
 }
-function chapLine(c, curKey){
+function renderTop(){
+  const lv = levelOf(S.xp), d = dailyXp(), sk = streakAlive();
+  $('hud').innerHTML = `<button type="button" class="hud-it streak${sk ? ' on' : ''}" data-go="progres" title="Série : ${sk} jour${sk > 1 ? 's' : ''} de suite">${I.flame}<b>${sk}</b></button>
+    <button type="button" class="hud-it goal" data-go="progres" title="Objectif du jour : ${Math.min(d.xp, S.goal)} / ${S.goal} XP">${goalRing(28)}<span class="g-txt">${Math.min(d.xp, S.goal)}<small>/${S.goal}</small></span></button>
+    <button type="button" class="hud-it lvl" data-go="progres" title="${S.xp} XP"><span class="lv-n">Niv. ${lv.n}</span><span class="lv-bar"><i style="width:${lv.pct * 100}%"></i></span></button>
+    <button type="button" class="hud-it icon" data-go="reglages" aria-label="Paramètres">${I.gear}</button>`;
+  $('where').textContent = view.type === 'lesson' ? `${LES[view.id].num} · ${LES[view.id].title}` : ({ fiches:'Mes fiches', progres:'Mes progrès', reglages:'Paramètres', pause:'Pause' })[view.type] || '';
+}
+function chapLine(c, open){
   const total = c.lessons.length + c.plan.length;
-  if (!c.lessons.length) return `<details class="chap planned"><summary><span class="cn">${c.n}</span><span>${c.title}</span><small>bientôt</small></summary><ul class="lessons">${c.plan.map((t, k) => `<li><span class="les planned"><span class="ico">${k + 1}</span><span>${c.part === 'poo' ? 'POO ' : ''}${c.n}.${k + 1} ${t}</span></span></li>`).join('')}</ul></details>`;
   const dn = c.lessons.filter(L => S.done[L.id]).length;
-  let h = `<details class="chap"${c.key === curKey ? ' open' : ''}><summary><span class="cn">${c.n}</span><span>${c.title}</span><small>${dn}/${total}</small></summary><ul class="lessons">`;
+  const doneAll = c.lessons.length && dn === c.lessons.length;
+  let h = `<details class="chap${doneAll ? ' finished' : ''}"${open ? ' open' : ''}><summary><span class="cn">${doneAll ? I.check : c.n}</span><span>${c.title}</span><small>${dn}/${total}</small></summary><ul class="lessons">`;
   c.lessons.forEach((L, k) => {
     const isCur = view.type === 'lesson' && view.id === L.id;
     const st = S.done[L.id] ? 'done' : available(L.id) ? '' : 'locked';
-    const ico = S.done[L.id] ? I_CHECK : st === 'locked' ? I_LOCK : (k + 1);
+    const ico = S.done[L.id] ? I.check : st === 'locked' ? I.lock : (k + 1);
     h += st === 'locked'
-      ? `<li><span class="les locked" title="Termine la leçon d’avant pour l’ouvrir"><span class="ico">${ico}</span><span>${L.num} ${L.title}</span></span></li>`
-      : `<li><button type="button" class="les ${st}${isCur ? ' current' : ''}" data-go="l${L.id}"><span class="ico">${ico}</span><span>${L.num} ${L.title}</span></button></li>`;
+      ? `<li><span class="les locked" title="Termine la leçon d’avant pour l’ouvrir"><span class="ico">${ico}</span><span>${L.title}</span></span></li>`
+      : `<li><button type="button" class="les ${st}${isCur ? ' current' : ''}" data-go="l${L.id}"><span class="ico">${ico}</span><span>${L.title}</span></button></li>`;
   });
-  c.plan.forEach((t, k) => { const j = c.lessons.length + k + 1; h += `<li><span class="les planned"><span class="ico">${j}</span><span>${c.part === 'poo' ? 'POO ' : ''}${c.n}.${j} ${t}</span></span></li>`; });
   return h + `</ul></details>`;
 }
 function renderSide(){
-  let h = `<div class="nav-top"><button type="button" class="nav-link${view.type === 'home' ? ' on' : ''}" data-go="accueil">${I_HOME}Accueil</button><button type="button" class="nav-link${view.type === 'fiches' ? ' on' : ''}" data-go="fiches">${I_CARDS}Mes fiches</button></div>`;
-  const ref = view.type === 'lesson' ? view.id : nextLesson();
-  const curKey = ref && LES[ref] ? LES[ref].chap.key : 'bases-1';
+  const nav = [['accueil', 'home', I.home, 'Accueil'], ['progres', 'progres', I.trophy, 'Progrès et classement'], ['fiches', 'fiches', I.cards, 'Mes fiches'], ['reglages', 'reglages', I.gear, 'Paramètres']];
+  let h = `<div class="nav-top">${nav.map(([go, t, ic, label]) => `<button type="button" class="nav-link${view.type === t ? ' on' : ''}" data-go="${go}">${ic}${label}</button>`).join('')}</div>`;
+  const ref = view.type === 'lesson' ? view.id : resumeLesson();
+  const curC = ref && LES[ref] ? LES[ref].chap : CHAPTERS[0];
   for (const p of PARTS) {
-    const cs = CHAPTERS.filter(c => c.part === p.id);
+    const cs = CHAPTERS.filter(c => c.part === p.id && c.lessons.length);
     if (!cs.length) continue;
-    h += `<p class="side-label">${p.title}</p>` + cs.map(c => chapLine(c, curKey)).join('');
+    const here = curC && curC.part === p.id;
+    const fin = cs.filter(c => c.lessons.every(L => S.done[L.id]) && c !== curC);
+    const current = cs.filter(c => c === curC);
+    const later = cs.filter(c => !fin.includes(c) && c !== curC);
+    if (!here) {
+      const dn = cs.reduce((a, c) => a + c.lessons.filter(L => S.done[L.id]).length, 0);
+      h += `<details class="part-fold"><summary class="side-label">${p.title}<small>${dn ? dn + ' leçons faites' : cs.length + ' chapitres'}</small></summary>${cs.map(c => chapLine(c, false)).join('')}</details>`;
+      continue;
+    }
+    h += `<p class="side-label">${p.title}</p>`;
+    h += fin.map(c => chapLine(c, false)).join('');
+    h += current.map(c => chapLine(c, true)).join('');
+    if (later.length) h += `<details class="later"><summary>${later.length} chapitre${later.length > 1 ? 's' : ''} à débloquer ensuite</summary>${later.map(c => chapLine(c, false)).join('')}</details>`;
   }
-  h += `<label class="unlock"><input type="checkbox" id="unlock"${S.unlock ? ' checked' : ''}> Tout débloquer (pour visiter les leçons sans les faire dans l’ordre)</label>`;
+  h += `<label class="unlock"><input type="checkbox" id="unlock"${S.unlock ? ' checked' : ''}> Tout débloquer (pour visiter les leçons dans le désordre)</label>`;
   $('side').innerHTML = h;
 }
 
@@ -217,9 +448,7 @@ function ideHTML(lid, i){
   else con = `<pre class="out empty">${st.err ? '' : '(rien ne s’affiche)'}</pre>`;
   if (st.err) con += `<div class="err-box" role="alert"><b>${esc(st.err.title)}</b><p>${st.err.text}</p><span class="err-raw">Message original : ${esc(st.err.raw)}</span></div>`;
   let mem = '';
-  if (s.mem || (st.mem && st.mem.length)) {
-    mem = `<div class="memory"><div class="c-label">Mémoire de Python</div>${st.mem && st.mem.length ? memHTML(st.mem) : `<p class="mem-empty">Les boîtes apparaîtront ici après l'exécution.</p>`}</div>`;
-  }
+  if (s.mem || (st.mem && st.mem.length)) mem = `<div class="memory"><div class="c-label">Mémoire de Python</div>${st.mem && st.mem.length ? memHTML(st.mem) : `<p class="mem-empty">Les boîtes apparaîtront ici après l'exécution.</p>`}</div>`;
   const rows = Math.max(4, st.code.split('\n').length + 1);
   return `<div class="ide"><div class="ide-bar"><span class="file"><i></i>${s.file || 'main.py'}</span><span class="kbd">Ctrl + Entrée</span><button type="button" class="run" data-act="run" data-i="${i}">▶ Exécuter</button></div><textarea class="code" id="code-${i}" data-i="${i}" rows="${rows}" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Code Python de l'étape ${i + 1}"${s.t === 'code' ? ' data-nopaste="1"' : ''}>${esc(st.code)}</textarea><div class="console"><div class="c-label">Console</div>${con}</div>${mem}</div>`;
 }
@@ -268,7 +497,7 @@ function stepHTML(lid, i){
   if ((s.t === 'code' || s.t === 'fill') && !st.done && st.tries >= 3 && (!s.hints || st.hints >= s.hints.length)) a += `<button type="button" class="btn ghost" data-act="skip" data-i="${i}">Passer pour l’instant</button>`;
   if (i === cur) {
     const free = (s.t === 'say' && s.code === undefined) || s.t === 'compare';
-    if (st.done || free) a += `<button type="button" class="btn" data-act="next" data-i="${i}">On continue</button>`;
+    if (st.done || free) a += `<button type="button" class="btn" data-act="next" data-i="${i}">${i === L.steps.length - 1 ? 'Terminer la leçon' : 'On continue'}</button>`;
     else if (s.t === 'say') a += `<span class="wait">Exécute le code pour continuer.</span>`;
   }
   if (a) h += `<div class="actions">${a}</div>`;
@@ -277,44 +506,67 @@ function stepHTML(lid, i){
   if (st.done && (s.t === 'code' || s.t === 'fill')) reply = st.skipped ? 'Je passe pour l’instant, j’y reviendrai.' : DONEW[i % DONEW.length];
   return `<section class="step" id="st-${i}"><div class="who">${PYO}</div><div class="bubble">${h}</div>${reply ? `<div class="reply"><p>${esc(reply)}</p></div>` : ''}</section>`;
 }
-function recapHTML(lid){
+
+/* La barre de progression de la leçon : un serpent qui grandit d'un anneau par étape. */
+function lbarHTML(lid){
+  const L = LES[lid], sts = stOf(lid), n = L.steps.length, cur = Math.min(S.cur[lid] || 0, n);
+  const segs = L.steps.map((s, i) => {
+    const st = sts[i]; let c = '';
+    if (st.done) c = st.skipped ? 'skip' : (s.t === 'code' && s.bug) ? 'bug' : ((s.t === 'code' || s.t === 'quiz' || s.t === 'fill') && ((s.t === 'quiz' && st.picked.length === 1) || (s.t !== 'quiz' && st.tries === 1))) ? 'gold' : 'done';
+    else if (i === cur) c = 'now';
+    return `<i class="seg ${c}"></i>`;
+  }).join('');
+  const doneN = sts.filter(x => x.done).length, pct = doneN / n;
+  const left = Math.max(1, Math.round(parseInt(L.dur) * (1 - cur / n)));
+  const ls = S.ls[lid];
+  return `<div class="lb-row"><span class="lb-step">${cur >= n ? 'Leçon terminée' : `Étape ${cur + 1} sur ${n}`}</span>${S.combo >= 3 ? `<span class="lb-combo">${I.flame} Combo ×${S.combo}</span>` : ''}<span class="lb-xp">${ls && ls.xp ? `+${ls.xp} XP` : `≈ ${left} min`}</span></div>
+    <div class="snake" style="--p:${pct}"><span class="tail"></span><span class="segs">${segs}</span><span class="head" style="left:calc(${pct * 100}% - 13px)">${PYO}</span></div>`;
+}
+function renderLbar(){ const b = $('lbar'); if (b && view.type === 'lesson') b.innerHTML = lbarHTML(view.id); }
+
+function endHTML(lid){
   const L = LES[lid], po = partOrder(L.chap.part), nx = po[po.indexOf(lid) + 1];
-  const nc = CHAPTERS.find(x => x.part === L.chap.part && x.n === L.chap.n + 1);
-  let a;
-  if (nx) a = `<button type="button" class="btn" data-go="l${nx}">Leçon suivante : ${LES[nx].num} ${LES[nx].title}</button>`;
-  else if (L.chap.plan.length || (nc && !nc.lessons.length)) a = `<span class="wait">La suite arrive bientôt.</span>`;
-  else if (L.chap.part === 'bases' && partOrder('poo').length) a = `<button type="button" class="btn" data-go="l${partOrder('poo')[0]}">Bases terminées ! Passer à la POO</button>`;
-  else a = `<span class="wait">Tu as terminé cette partie. Bravo !</span>`;
-  a += `<button type="button" class="btn ghost" data-go="fiches">Mes fiches</button>`;
-  return `<section class="step" id="st-${L.steps.length}"><div class="who">${PYO}</div><div class="bubble"><p class="kind k-recap">Fiche mémo</p><h2>Ce qu'il faut retenir</h2><div class="body"><ul>${L.recap.map(p => `<li>${p}</li>`).join('')}</ul><p class="small">Cette fiche est rangée dans « Mes fiches ». Relis-la avant un contrôle.</p></div><div class="actions">${a}</div></div></section>`;
+  const ls = S.ls[lid] || { xp:0, first:0, graded:0 };
+  const acc = ls.graded ? Math.round(ls.first / ls.graded * 100) : 100;
+  const mins = ls.start && ls.end ? Math.max(1, Math.round((ls.end - ls.start) / 60000)) : null;
+  let next;
+  if (nx) next = `<button type="button" class="btn big" data-go="l${nx}">Continuer : ${LES[nx].title}</button>`;
+  else if (L.chap.part === 'bases' && partOrder('poo').length) next = `<button type="button" class="btn big" data-go="l${partOrder('poo')[0]}">Bases terminées ! Passer à la POO</button>`;
+  else next = `<span class="wait">Tu as terminé cette partie. Bravo !</span>`;
+  return `<section class="step end" id="st-${L.steps.length}"><div class="who">${PYO}</div><div class="bubble">
+    <p class="kind k-recap">Leçon terminée</p><h2>${ls.perfect ? 'Sans aucune faute, impressionnant !' : 'Bien joué, leçon bouclée !'}</h2>
+    <div class="tiles"><div class="tile"><b>+${ls.xp || 0}</b><span>XP gagnés</span></div><div class="tile"><b>${acc} %</b><span>du premier coup</span></div>${mins ? `<div class="tile"><b>${mins} min</b><span>de travail</span></div>` : ''}<div class="tile"><b>${streakAlive()} ${I.flame}</b><span>jour${streakAlive() > 1 ? 's' : ''} de suite</span></div></div>
+    <h3 class="memo-t">Ce qu'il faut retenir</h3><ul class="memo">${L.recap.map(p => `<li>${p}</li>`).join('')}</ul>
+    <div class="actions">${next}<button type="button" class="btn ghost" data-go="pause">M'arrêter ici</button></div>
+    <p class="small">La fiche mémo est rangée dans « Mes fiches ».</p></div></section>`;
 }
 function lessonHTML(lid){
-  const L = LES[lid], c = L.chap, k = c.lessons.indexOf(L), total = c.lessons.length + c.plan.length;
+  const L = LES[lid], c = L.chap, k = c.lessons.indexOf(L);
   if (S.cur[lid] === undefined) S.cur[lid] = 0;
-  const partT = c.part === 'poo' ? 'POO · ' : '';
-  let h = `<section class="step"><div class="who">${PYO}</div><div class="bubble"><p class="kicker">${partT}Chapitre ${c.n} · Leçon ${k + 1} sur ${total} · ${L.dur}</p><h1>${L.title}</h1><p>${L.intro}</p></div></section>`;
+  S.last = lid;
+  const ls = S.ls[lid] = S.ls[lid] || { xp:0, first:0, graded:0, start:Date.now() };
+  if (!ls.start) ls.start = Date.now();
+  let h = `<div class="lbar" id="lbar">${lbarHTML(lid)}</div>`;
+  h += `<section class="step"><div class="who">${PYO}</div><div class="bubble"><p class="kicker">${c.part === 'poo' ? 'POO · ' : ''}Chapitre ${c.n} · ${c.title} · leçon ${k + 1}</p><h1>${L.title}</h1><p>${L.intro}</p></div></section>`;
   const upto = Math.min(S.cur[lid], L.steps.length - 1);
   for (let i = 0; i <= upto; i++) h += stepHTML(lid, i);
-  if (S.cur[lid] >= L.steps.length) h += recapHTML(lid);
+  if (S.cur[lid] >= L.steps.length) h += endHTML(lid);
   return h;
 }
-function partBlock(p){
-  const cs = CHAPTERS.filter(c => c.part === p.id);
-  const n = cs.reduce((a, c) => a + c.lessons.length + c.plan.length, 0);
-  const nx = nextIn(p.id), started = partOrder(p.id).some(l => S.done[l] || S.cur[l] !== undefined);
-  const cta = nx ? `<button type="button" class="btn${p.id === 'bases' ? '' : ' ghost'}" data-go="l${nx}">${started ? 'Reprendre' : 'Commencer'} : ${LES[nx].num} ${LES[nx].title}</button>` : partOrder(p.id).length ? `<span class="wait">Partie terminée !</span>` : `<span class="wait">En préparation.</span>`;
-  const rows = cs.map(c => {
-    const tot = c.lessons.length + c.plan.length;
-    if (!c.lessons.length) return `<li class="planned"><span class="pn">${c.n}</span><span class="pt"><b>${c.title}</b><span>${tot} leçons</span></span><span class="ps">En préparation</span></li>`;
-    const dn = c.lessons.filter(L => S.done[L.id]).length;
-    const names = c.lessons.map(L => L.title).concat(c.plan);
-    return `<li><span class="pn">${c.n}</span><span class="pt"><b>${c.title}</b><span>${names.slice(0, 3).join(', ')}${names.length > 3 ? '…' : ''}</span></span><span class="ps">${dn} / ${tot}<div class="bar"><i style="width:${dn / tot * 100}%"></i></div></span></li>`;
-  }).join('');
-  return `<section class="step"><div class="who"></div><div class="bubble"><p class="kicker">Partie ${PARTS.indexOf(p) + 1}</p><h2>${p.title}</h2><p class="small">${n} leçons en ${cs.length} chapitres.${p.id === 'poo' ? ' Dans l’ordre du cours de POO : chaque notion en Python, puis en Java.' : ''}</p><ol class="parcours">${rows}</ol><div class="actions">${cta}</div></div></section>`;
+function chapterCard(c){
+  const tot = c.lessons.length, dn = c.lessons.filter(L => S.done[L.id]).length;
+  return `<div class="chap-card"><span class="pn">${c.n}</span><span class="pt"><b>${c.title}</b><span>${dn} leçon${dn > 1 ? 's' : ''} sur ${tot} · environ ${Math.round(c.lessons.reduce((a, L) => a + parseInt(L.dur), 0) * 1.4 / 60 * 2) / 2} h</span></span><span class="cbar"><i style="width:${tot ? dn / tot * 100 : 0}%"></i></span></div>`;
 }
 function homeHTML(){
-  const nx = nextLesson(), started = doneCount() > 0 || Object.keys(S.cur).length > 0;
-  const cta = nx ? `<button type="button" class="btn" data-go="l${nx}">${started ? 'Reprendre' : 'Commencer'} : ${LES[nx].num} ${LES[nx].title}</button>` : `<span class="wait">Tu as terminé toutes les leçons disponibles. Bravo !</span>`;
+  const rl = resumeLesson(), lv = levelOf(S.xp), d = dailyXp(), sk = streakAlive();
+  const started = doneCount() > 0 || Object.keys(S.cur).length > 0;
+  let hero;
+  if (rl) {
+    const L = LES[rl], cur = S.cur[rl] || 0;
+    hero = `<div class="resume"><p class="kicker">${started ? 'On reprend ?' : 'Prêt à commencer ?'}</p><h2>${L.num} · ${L.title}</h2><p class="small">${cur ? `Tu t'étais arrêté à l'étape ${cur + 1} sur ${L.steps.length}.` : `${L.dur} environ. ${L.intro}`}</p><div class="actions"><button type="button" class="btn big" data-go="l${rl}">${started ? 'Continuer' : 'Commencer'}</button></div></div>`;
+  } else hero = `<p>Tu as terminé toutes les leçons. Bravo, tu es ${lv.name} !</p>`;
+  const curC = rl ? LES[rl].chap : null;
+  const today3 = `<div class="today"><div class="td">${goalRing(46)}<span><b>${Math.min(d.xp, S.goal)} / ${S.goal} XP</b>Objectif du jour</span></div><div class="td">${I.flame}<span><b>${sk} jour${sk > 1 ? 's' : ''}</b>de suite</span></div><div class="td lv"><span class="lv-badge">${lv.n}</span><span><b>${lv.name}</b>${lv.next ? `${lv.next - S.xp} XP avant le niveau ${lv.n + 1}` : 'Niveau maximum'}</span></div></div>`;
   const how = [
     ['say', 'Je t’explique un petit bout', 'Quelques lignes, jamais un gros pavé.'],
     ['guess', 'Tu devines', 'Avant d’exécuter, tu prédis ce que fait le code.'],
@@ -322,34 +574,93 @@ function homeHTML(){
     ['bug', 'Tu répares des bugs', 'Les erreurs sont expliquées en français.'],
     ['rev', 'Tu révises', 'Chaque leçon commence par une question sur la précédente.'],
     ['java', 'Tu passes à Java', 'En POO, chaque notion est aussi montrée en Java.']
-  ].map(([ic, t, d]) => `<li><span class="hi">${HOW_ICONS[ic]}</span><span><b>${t}</b>${d}</span></li>`).join('');
-  return `<section class="step"><div class="who">${PYO}</div><div class="bubble"><p class="kicker">Atelier Python</p><h1>Salut, moi c'est Pyo.</h1><p>Je vais t'apprendre les bases de Python, puis la programmation orientée objet en Python et en Java. Ici, pas de gros cours à lire : je t'explique un petit bout, tu testes tout de suite, et si tu te trompes, on regarde pourquoi ensemble.</p><p class="small">Tu connais déjà les bases ? Tu peux commencer directement par la partie POO, plus bas.</p><div class="actions">${cta}</div></div></section>
-  <section class="step"><div class="who"></div><div class="bubble"><h2>Comment ça marche</h2><ul class="how">${how}</ul></div></section>
-  ${PARTS.map(partBlock).join('')}`;
+  ].map(([ic, t, dd]) => `<li><span class="hi">${HOW_ICONS[ic]}</span><span><b>${t}</b>${dd}</span></li>`).join('');
+  const parts = PARTS.map(p => {
+    const cs = CHAPTERS.filter(c => c.part === p.id && c.lessons.length); if (!cs.length) return '';
+    const nx = nextIn(p.id);
+    const show = curC && curC.part === p.id ? [curC] : [cs.find(c => c.lessons.some(L => !S.done[L.id])) || cs[cs.length - 1]];
+    const dn = partOrder(p.id).filter(l => S.done[l]).length;
+    return `<div class="part"><div class="part-h"><b>${p.title}</b><span class="small">${dn ? `${dn} leçon${dn > 1 ? 's' : ''} terminée${dn > 1 ? 's' : ''}` : `${cs.length} chapitres · environ 15 min par leçon`}</span></div>${show.map(chapterCard).join('')}${nx && (!curC || curC.part !== p.id) ? `<div class="actions"><button type="button" class="btn ghost" data-go="l${nx}">${dn ? 'Reprendre' : 'Commencer'} cette partie</button></div>` : ''}</div>`;
+  }).join('');
+  const ext = Atelier.ext.homeBanner ? Atelier.ext.homeBanner() : '';
+  return `<section class="step"><div class="who">${PYO}</div><div class="bubble"><h1>${started ? 'Content de te revoir !' : 'Salut, moi c\'est Pyo.'}</h1>${started ? '' : `<p>Je vais t'apprendre les bases de Python, puis la programmation orientée objet en Python et en Java. Pas de gros cours à lire : je t'explique un petit bout, tu testes tout de suite, et si tu te trompes, on regarde pourquoi ensemble.</p>`}${hero}</div></section>
+  ${ext}
+  <section class="step"><div class="who"></div><div class="bubble">${today3}</div></section>
+  <section class="step"><div class="who"></div><div class="bubble"><h2>Ton parcours</h2>${parts}</div></section>
+  ${started ? '' : `<section class="step"><div class="who"></div><div class="bubble"><h2>Comment ça marche</h2><ul class="how">${how}</ul></div></section>`}`;
+}
+function pauseHTML(){
+  const d = dailyXp(), sk = streakAlive(), rl = resumeLesson();
+  return `<section class="step"><div class="who">${PYO}</div><div class="bubble"><p class="kicker">Bonne pause</p><h1>À la prochaine !</h1>
+    <p>Aujourd'hui : <b>${d.xp} XP</b> et <b>${d.lessons} leçon${d.lessons > 1 ? 's' : ''}</b> terminée${d.lessons > 1 ? 's' : ''}.${d.xp >= S.goal ? ' Objectif du jour atteint, bravo.' : ` Encore ${S.goal - d.xp} XP pour l'objectif du jour.`}</p>
+    <div class="today"><div class="td">${goalRing(46)}<span><b>${Math.min(d.xp, S.goal)} / ${S.goal} XP</b>Objectif du jour</span></div><div class="td">${I.flame}<span><b>${sk} jour${sk > 1 ? 's' : ''}</b>de suite</span></div></div>
+    <p>${sk ? `Reviens demain pour passer à ${sk + 1} jours de suite. Même 10 minutes suffisent.` : 'Reviens demain pour lancer ta série de jours.'}</p>
+    <div class="actions"><button type="button" class="btn ghost" data-go="accueil">Retour à l'accueil</button>${rl ? `<button type="button" class="btn" data-go="l${rl}">Finalement, je continue</button>` : ''}</div></div></section>`;
+}
+function progresHTML(){
+  const lv = levelOf(S.xp), acc = S.stats.graded ? Math.round(S.stats.first / S.stats.graded * 100) : 0;
+  const badges = BADGES.map(b => { const got = S.badges[b.id]; return `<div class="badge${got ? ' got' : ''}" title="${esc(b.desc)}"><span class="b-ic">${got ? b.icon : '?'}</span><b>${b.name}</b><span>${got ? 'Obtenu le ' + got.split('-').reverse().join('/') : b.desc}</span></div>`; }).join('');
+  const board = Atelier.ext.boardHTML ? Atelier.ext.boardHTML() : `<p>Le classement de la classe arrive avec les comptes. En attendant, ta progression est enregistrée sur cet appareil.</p>`;
+  return `<section class="step"><div class="who">${PYO}</div><div class="bubble"><p class="kicker">Niveau ${lv.n}</p><h1>${lv.name}</h1>
+    <div class="lvl-big"><span class="lv-bar"><i style="width:${lv.pct * 100}%"></i></span><span class="small">${S.xp} XP${lv.next ? ` · encore ${lv.next - S.xp} XP pour devenir ${LEVELS[lv.n][1]}` : ''}</span></div>
+    <div class="tiles"><div class="tile"><b>${doneCount()}</b><span>leçons terminées</span></div><div class="tile"><b>${streakAlive()} ${I.flame}</b><span>série actuelle (record ${S.streak.best})</span></div><div class="tile"><b>${acc} %</b><span>réussi du premier coup</span></div><div class="tile"><b>${S.streak.freezes} 🧊</b><span>gel${S.streak.freezes > 1 ? 's' : ''} de série</span></div></div>
+    <div class="actions"><button type="button" class="btn ghost" data-act2="share">Partager ma progression</button></div></div></section>
+  <section class="step"><div class="who"></div><div class="bubble"><h2>Classement de la classe</h2>${board}</div></section>
+  <section class="step"><div class="who"></div><div class="bubble"><h2>Badges · ${Object.keys(S.badges).length} sur ${BADGES.length}</h2><div class="badges">${badges}</div></div></section>`;
 }
 function fichesHTML(){
   const done = ORDER.filter(l => S.done[l]);
   const body = done.length
     ? done.map(l => `<div class="fiche"><h3><span>${LES[l].num}</span>${LES[l].title}</h3><ul>${LES[l].recap.map(p => `<li>${p}</li>`).join('')}</ul></div>`).join('')
-    : `<p>Tu n'as pas encore de fiche. Termine ta première leçon et elle apparaîtra ici.</p>${nextLesson() ? `<div class="actions"><button type="button" class="btn" data-go="l${nextLesson()}">Aller à la leçon ${LES[nextLesson()].num}</button></div>` : ''}`;
+    : `<p>Tu n'as pas encore de fiche. Termine ta première leçon et elle apparaîtra ici.</p>`;
   return `<section class="step"><div class="who">${PYO}</div><div class="bubble"><p class="kicker">Révisions</p><h1>Mes fiches</h1><p>Chaque leçon terminée ajoute sa fiche ici. C'est ton résumé à relire avant un contrôle.</p></div></section><section class="step"><div class="who"></div><div class="bubble">${body}</div></section>`;
 }
-function renderView(){
-  $('view').innerHTML = view.type === 'lesson' ? lessonHTML(view.id) : view.type === 'fiches' ? fichesHTML() : homeHTML();
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function reglagesHTML(){
+  const opt = (name, val, label, cur) => `<label class="seg-opt"><input type="radio" name="${name}" value="${val}"${String(cur) === String(val) ? ' checked' : ''}><span>${label}</span></label>`;
+  const tab = isIOS() ? 'ios' : /android/i.test(navigator.userAgent) ? 'android' : 'pc';
+  const install = isStandalone()
+    ? `<p class="ok-line">${I.check} L'appli est installée sur cet appareil.</p>`
+    : `${installPrompt ? `<div class="actions"><button type="button" class="btn" data-act2="install">Installer l'appli</button></div>` : ''}
+      <div class="tabs" role="tablist">${[['android', 'Android'], ['ios', 'iPhone et iPad'], ['pc', 'Ordinateur']].map(([k, l]) => `<button type="button" role="tab" class="tab${k === tab ? ' on' : ''}" data-tab="${k}" aria-selected="${k === tab}">${l}</button>`).join('')}</div>
+      <ol class="guide" data-guide="android"${tab === 'android' ? '' : ' hidden'}><li>Ouvre le site dans <b>Chrome</b>.</li><li>Touche le menu <b>⋮</b> en haut à droite.</li><li>Choisis <b>Installer l'application</b> (ou <b>Ajouter à l'écran d'accueil</b>).</li><li>Confirme : l'icône de Pyo apparaît sur ton écran d'accueil.</li></ol>
+      <ol class="guide" data-guide="ios"${tab === 'ios' ? '' : ' hidden'}><li>Ouvre le site dans <b>Safari</b> (pas dans un autre navigateur).</li><li>Touche le bouton <b>Partager</b> (le carré avec une flèche vers le haut).</li><li>Fais défiler et choisis <b>Sur l'écran d'accueil</b>.</li><li>Touche <b>Ajouter</b> : l'appli s'ouvre ensuite en plein écran.</li></ol>
+      <ol class="guide" data-guide="pc"${tab === 'pc' ? '' : ' hidden'}><li>Ouvre le site dans <b>Chrome</b> ou <b>Edge</b>.</li><li>Clique sur l'icône d'installation à droite de la barre d'adresse (un écran avec une flèche), ou sur le menu <b>⋮</b> puis <b>Installer Atelier Python</b>.</li><li>L'appli s'ouvre dans sa propre fenêtre, et tu la retrouves dans le menu Démarrer.</li></ol>
+      <p class="small">Une fois installée, l'appli marche aussi sans connexion. Ta progression se synchronise quand le réseau revient.</p>`;
+  const account = Atelier.ext.accountHTML ? Atelier.ext.accountHTML() : `<p>Les comptes ne sont pas encore activés sur ce site. Ta progression est enregistrée sur cet appareil.</p>`;
+  return `<section class="step"><div class="who">${PYO}</div><div class="bubble"><p class="kicker">Paramètres</p><h1>Réglages</h1><p>Règle l'appli comme tu l'aimes.</p></div></section>
+  <section class="step"><div class="who"></div><div class="bubble" id="compte"><h2>Compte et classe</h2>${account}</div></section>
+  <section class="step"><div class="who"></div><div class="bubble"><h2>Installer l'appli</h2>${install}</div></section>
+  <section class="step"><div class="who"></div><div class="bubble"><h2>Préférences</h2>
+    <div class="pref"><b>Objectif du jour</b><div class="seg-group">${opt('goal', 20, 'Tranquille · 20 XP', S.goal)}${opt('goal', 50, 'Normal · 50 XP', S.goal)}${opt('goal', 100, 'Intense · 100 XP', S.goal)}</div></div>
+    <div class="pref"><b>Thème</b><div class="seg-group">${opt('theme', 'auto', 'Automatique', S.settings.theme)}${opt('theme', 'light', 'Clair', S.settings.theme)}${opt('theme', 'dark', 'Sombre', S.settings.theme)}</div></div>
+    <label class="pref sw"><input type="checkbox" data-set="sound"${S.settings.sound ? ' checked' : ''}><span><b>Sons</b>Petits sons quand tu réussis</span></label>
+    <label class="pref sw"><input type="checkbox" data-set="motion"${S.settings.motion ? ' checked' : ''}><span><b>Animations</b>Confettis et effets</span></label>
+  </div></section>
+  <section class="step"><div class="who"></div><div class="bubble"><h2>Mes données</h2><p class="small">Tout recommencer efface ta progression sur cet appareil.</p><div class="actions" id="reset-zone"><button type="button" class="btn ghost danger" data-act2="reset-ask">Tout recommencer</button></div></div></section>`;
 }
-function renderAll(){ renderTop(); renderSide(); renderView(); }
+function renderView(){
+  const v = view.type;
+  $('view').innerHTML = v === 'lesson' ? lessonHTML(view.id) : v === 'fiches' ? fichesHTML() : v === 'progres' ? progresHTML() : v === 'reglages' ? reglagesHTML() : v === 'pause' ? pauseHTML() : homeHTML();
+  document.body.dataset.view = v;
+  emit('render', view);
+}
+function renderAll(){ applySettings(); renderTop(); renderSide(); renderView(); }
 function updateStep(lid, i){
   const el = $('st-' + i); if (!el || view.type !== 'lesson' || view.id !== lid) return;
   const t = document.createElement('div'); t.innerHTML = stepHTML(lid, i);
   el.replaceWith(t.firstElementChild);
+  renderLbar();
+}
+function applySettings(){
+  const th = S.settings.theme;
+  if (th === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
+  document.body.classList.toggle('side-closed', S.settings.side === 'closed');
+  const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#FFFFFF';
 }
 
 /* ================= Actions ================= */
-function toast(msg){
-  document.querySelectorAll('.toast').forEach(t => t.remove());
-  const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg;
-  document.body.appendChild(t); setTimeout(() => t.remove(), 2800);
-}
 function askIn(con){
   return new Promise(res => {
     const w = document.createElement('div'); w.className = 'ask';
@@ -374,17 +685,21 @@ async function run(lid, i){
   const r = await runPy(st.code, { live, ask:() => askIn(con) });
   if (tok !== runToken || view.type !== 'lesson' || view.id !== lid) { busy = false; return; }
   st.out = r.out; st.err = r.err; st.mem = r.mem;
-  if (s.t === 'say' && !st.done) st.done = true;
+  let won = null;
+  if (s.t === 'say' && !st.done) { st.done = true; if (!r.err) won = ['run', true]; }
   if (s.t === 'code' && (!st.done || st.skipped)) {
     const unchanged = s.bug && st.code.trim() === s.code.trim();
     let v;
     try { v = await s.check(r, st.code, tester(st.code)); }
     catch (e) { console.error(e); v = 'Je n’ai pas réussi à vérifier ton code. Réessaie.'; }
     if (!unchanged) st.tries++;
-    if (v === true) { st.done = true; st.skipped = false; st.fb = { ok:true, text:s.ok || '' }; }
-    else st.fb = { ok:false, text:v + (st.skipped ? ' (Exercice passé : tu peux continuer quand même.)' : '') };
+    if (v === true) { const wasSkipped = st.skipped; st.done = true; st.skipped = false; st.fb = { ok:true, text:s.ok || '' }; if (!wasSkipped) won = [s.bug ? 'bug' : 'code', st.tries === 1]; }
+    else { st.fb = { ok:false, text:v + (st.skipped ? ' (Exercice passé : tu peux continuer quand même.)' : '') }; if (!unchanged) { S.combo = 0; sound('ko'); } }
   }
-  busy = false; save(); updateStep(lid, i); renderTop();
+  busy = false;
+  const anchor = $('st-' + i) && $('st-' + i).querySelector('.run');
+  if (won) award(lid, i, won[0], won[1], anchor);
+  save(); updateStep(lid, i); renderTop();
   if (!st.done) { const ta = $('code-' + i); if (ta) ta.focus({ preventScroll:true }); }
 }
 function checkFill(lid, i){
@@ -394,19 +709,22 @@ function checkFill(lid, i){
   st.fillOk = blanks.map((p, k) => p.blank.some(a => fillNorm(a) === fillNorm(vals[k] || '')));
   st.tries++;
   const bad = st.fillOk.filter(x => !x).length;
-  if (!bad) { st.done = true; st.skipped = false; st.fb = { ok:true, text:s.ok || '' }; }
+  const btn = $('st-' + i) && $('st-' + i).querySelector('[data-act=fill]');
+  if (!bad) { const was = st.skipped; st.done = true; st.skipped = false; st.fb = { ok:true, text:s.ok || '' }; if (!was) award(lid, i, 'fill', st.tries === 1, btn); }
   else {
     const empty = blanks.some((p, k) => !(vals[k] || '').trim());
     st.fb = { ok:false, text: empty ? 'Il reste des trous vides.' : `${bad} trou${bad > 1 ? 's' : ''} à revoir, en rouge. Attention : Java fait la différence entre majuscules et minuscules.` };
+    if (!empty) { S.combo = 0; sound('ko'); }
   }
   save(); updateStep(lid, i);
 }
-function pick(lid, i, k){
+function pick(lid, i, k, el){
   const s = LES[lid].steps[i], st = stOf(lid)[i], o = s.opts[k];
   if (st.done || st.picked.includes(k)) return;
   st.picked.push(k);
   st.fb = o.ok ? { ok:true, text:s.ex } : { ok:false, text:o.why };
-  if (o.ok) st.done = true;
+  if (o.ok) { st.done = true; award(lid, i, 'quiz', st.picked.length === 1, el); }
+  else { S.combo = 0; sound('ko'); }
   save(); updateStep(lid, i);
 }
 function next(lid, i){
@@ -418,43 +736,97 @@ function next(lid, i){
     let j = i; while (j >= 0 && L.steps[j].code === undefined) j--;
     if (j >= 0) sts[i + 1].code = sts[j].code.trimEnd() + '\n\n' + ns.code;
   }
-  if (S.cur[lid] >= L.steps.length) S.done[lid] = true;
+  const finished = S.cur[lid] >= L.steps.length && !S.done[lid];
+  if (finished) { S.done[lid] = true; lessonComplete(lid); }
   save(); renderTop(); renderSide(); renderView();
   const el = $('st-' + (i + 1));
   if (el) {
-    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    el.scrollIntoView({ behavior:reduce ? 'auto' : 'smooth', block:'start' });
+    el.scrollIntoView({ behavior:motionOK() ? 'smooth' : 'auto', block:'start' });
     const f = el.querySelector('textarea, input.blank'); if (f) setTimeout(() => f.focus({ preventScroll:true }), 400);
   }
 }
 function openSide(on){
-  $('side').classList.toggle('open', on); $('scrim').classList.toggle('open', on);
+  if (matchMedia('(min-width: 1000px)').matches) {
+    S.settings.side = on ? 'open' : 'closed'; save(); applySettings();
+  } else {
+    $('side').classList.toggle('open', on); $('scrim').classList.toggle('open', on);
+  }
   $('menu').setAttribute('aria-expanded', String(on));
 }
+const sideIsOpen = () => matchMedia('(min-width: 1000px)').matches ? S.settings.side !== 'closed' : $('side').classList.contains('open');
 function go(token){
   if (pendingAsk) pendingAsk();
   runToken++;
-  if (token === 'fiches') view = { type:'fiches' };
-  else if (token === 'accueil') view = { type:'home' };
+  const simple = { fiches:'fiches', accueil:'home', progres:'progres', reglages:'reglages', pause:'pause' };
+  if (simple[token]) view = { type:simple[token] };
   else { const id = token.slice(1); if (!LES[id] || !available(id)) return; view = { type:'lesson', id }; }
   try { history.replaceState(null, '', '#' + token); } catch(_) {}
-  openSide(false); renderAll(); window.scrollTo(0, 0);
+  if (!matchMedia('(min-width: 1000px)').matches) { $('side').classList.remove('open'); $('scrim').classList.remove('open'); }
+  renderAll(); window.scrollTo(0, 0);
+}
+
+/* Carte à partager : une image avec le niveau, la série et les leçons. */
+async function share(){
+  const lv = levelOf(S.xp), c = document.createElement('canvas'); c.width = 1080; c.height = 1080;
+  const g = c.getContext('2d');
+  g.fillStyle = '#163C33'; g.fillRect(0, 0, 1080, 1080);
+  g.fillStyle = '#2A8770'; g.beginPath(); g.arc(880, 220, 300, 0, 7); g.fill();
+  g.fillStyle = '#E8922F'; g.beginPath(); g.arc(140, 980, 220, 0, 7); g.fill();
+  const img = new Image(); img.src = 'icons/icon-512.png'; await img.decode().catch(() => {});
+  try { g.drawImage(img, 90, 90, 200, 200); } catch(_) {}
+  g.fillStyle = '#FFFFFF'; g.font = '900 64px Nunito, sans-serif'; g.fillText('Atelier Python', 320, 175);
+  g.font = '600 38px Nunito, sans-serif'; g.fillStyle = '#CFE9E0'; g.fillText('J’apprends Python et la POO', 320, 235);
+  g.fillStyle = '#FFFFFF'; g.font = '900 120px Nunito, sans-serif'; g.fillText(lv.name, 90, 520);
+  g.font = '700 46px Nunito, sans-serif'; g.fillStyle = '#F4B55E'; g.fillText(`Niveau ${lv.n} · ${S.xp} XP`, 90, 600);
+  g.fillStyle = '#FFFFFF'; g.font = '800 54px Nunito, sans-serif';
+  g.fillText(`${doneCount()} leçons terminées`, 90, 740); g.fillText(`${streakAlive()} jours de suite`, 90, 820);
+  g.fillText(`${Object.keys(S.badges).length} badges`, 90, 900);
+  g.font = '600 34px Nunito, sans-serif'; g.fillStyle = '#CFE9E0'; g.fillText((location.host + location.pathname).replace(/index\.html$/, ''), 90, 1010);
+  const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+  const url = location.href.split('#')[0];
+  const text = `Je suis ${lv.name} sur Atelier Python : ${doneCount()} leçons, ${streakAlive()} jours de suite. Viens apprendre Python avec moi !`;
+  const file = new File([blob], 'atelier-python.png', { type:'image/png' });
+  try {
+    if (navigator.canShare && navigator.canShare({ files:[file] })) { await navigator.share({ files:[file], text, url }); return; }
+    if (navigator.share) { await navigator.share({ text, url }); return; }
+  } catch(_) { return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'atelier-python.png'; a.click();
+  try { await navigator.clipboard.writeText(text + ' ' + url); toast('Image téléchargée, et texte copié pour le partager.', '📋'); } catch(_) { toast('Image téléchargée.', '📷'); }
 }
 
 function bind(){
   document.addEventListener('click', e => {
     const g = e.target.closest('[data-go]');
     if (g) { e.preventDefault(); go(g.dataset.go); return; }
+    const t = e.target.closest('[data-tab]');
+    if (t) { document.querySelectorAll('[data-tab]').forEach(x => { x.classList.toggle('on', x === t); x.setAttribute('aria-selected', String(x === t)); }); document.querySelectorAll('[data-guide]').forEach(x => x.hidden = x.dataset.guide !== t.dataset.tab); return; }
+    const a2 = e.target.closest('[data-act2]');
+    if (a2) {
+      const k = a2.dataset.act2;
+      if (k === 'share') share();
+      if (k === 'install' && installPrompt) { installPrompt.prompt(); installPrompt.userChoice.finally(() => { installPrompt = null; renderView(); }); }
+      if (k === 'reset-ask') $('reset-zone').innerHTML = `<span class="wait">Sûr ? Toute ta progression sur cet appareil sera effacée.</span><button type="button" class="btn danger" data-act2="reset">Oui, tout effacer</button><button type="button" class="btn ghost" data-act2="reset-no">Annuler</button>`;
+      if (k === 'reset-no') renderView();
+      if (k === 'reset') { const keep = S.settings; S = fresh(); S.settings = keep; save(); emit('reset'); go('accueil'); toast('Progression effacée. Nouveau départ !', '🥚'); }
+      return;
+    }
     const b = e.target.closest('[data-act]'); if (!b || view.type !== 'lesson') return;
     const lid = view.id, i = +b.dataset.i;
     switch (b.dataset.act) {
       case 'run': run(lid, i); break;
-      case 'opt': pick(lid, i, +b.dataset.k); break;
+      case 'opt': pick(lid, i, +b.dataset.k, b); break;
       case 'fill': checkFill(lid, i); break;
       case 'hint': stOf(lid)[i].hints++; save(); updateStep(lid, i); break;
-      case 'skip': { const st = stOf(lid)[i]; st.done = true; st.skipped = true; st.fb = { ok:false, text:'Pas de souci : tu peux continuer, et revenir sur cet exercice quand tu veux. Il reste ouvert.' }; save(); updateStep(lid, i); break; }
+      case 'skip': { const st = stOf(lid)[i]; st.done = true; st.skipped = true; S.combo = 0; st.fb = { ok:false, text:'Pas de souci : tu peux continuer, et revenir sur cet exercice quand tu veux. Il reste ouvert.' }; save(); updateStep(lid, i); break; }
       case 'next': next(lid, i); break;
     }
+  });
+  document.addEventListener('change', e => {
+    const t = e.target;
+    if (t.name === 'goal') { S.goal = +t.value; save(); renderTop(); }
+    else if (t.name === 'theme') { S.settings.theme = t.value; save(); applySettings(); }
+    else if (t.dataset.set) { S.settings[t.dataset.set] = t.checked; save(); if (t.checked && t.dataset.set === 'sound') sound('ok'); }
+    else if (t.id === 'unlock') { S.unlock = t.checked; save(); renderSide(); }
   });
   const V = $('view');
   V.addEventListener('input', e => {
@@ -476,7 +848,6 @@ function bind(){
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); run(view.id, +t.dataset.i); }
     else if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); t.setRangeText('    ', t.selectionStart, t.selectionEnd, 'end'); t.dispatchEvent(new Event('input', { bubbles:true })); }
     else if (e.key === 'Enter' && !e.shiftKey && !e.altKey) {
-      // Garde le décalage de la ligne, et ajoute 4 espaces après une ligne qui finit par « : ».
       const before = t.value.slice(0, t.selectionStart), line = before.slice(before.lastIndexOf('\n') + 1);
       let ind = (line.match(/^ */) || [''])[0];
       if (/:\s*$/.test(line)) ind += '    ';
@@ -484,13 +855,15 @@ function bind(){
     }
   });
   V.addEventListener('paste', e => {
-    if (e.target.matches('textarea[data-nopaste]')) { e.preventDefault(); toast('Dans les exercices, on tape soi-même : c’est comme ça que ça rentre.'); }
+    if (e.target.matches('textarea[data-nopaste]')) { e.preventDefault(); toast('Dans les exercices, on tape soi-même : c’est comme ça que ça rentre.', '⌨️'); }
   });
   V.addEventListener('drop', e => { if (e.target.matches('textarea[data-nopaste]')) e.preventDefault(); });
-  $('side').addEventListener('change', e => { if (e.target.id === 'unlock') { S.unlock = e.target.checked; save(); renderSide(); } });
-  $('menu').addEventListener('click', () => openSide(!$('side').classList.contains('open')));
+  $('menu').addEventListener('click', () => openSide(!sideIsOpen()));
   $('scrim').addEventListener('click', () => openSide(false));
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') openSide(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (!matchMedia('(min-width: 1000px)').matches) openSide(false); document.querySelectorAll('.overlay').forEach(o => o.remove()); } });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applySettings);
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; if (view.type === 'reglages') renderView(); });
+  window.addEventListener('appinstalled', () => { installPrompt = null; toast('Appli installée. Retrouve Pyo sur ton écran d’accueil !', '📲'); });
 }
 
 function prepare(){
@@ -505,14 +878,19 @@ function start(){
   bind();
   const h = (location.hash || '').slice(1);
   const m = h.match(/^l([a-z]?\d+-\d+)$/);
-  if (h === 'fiches') view = { type:'fiches' };
+  if (['fiches', 'progres', 'reglages', 'pause'].includes(h)) view = { type:h };
   else if (m && LES[m[1]] && available(m[1])) view = { type:'lesson', id:m[1] };
   renderAll();
+  emit('start');
+  if ('serviceWorker' in navigator && location.protocol !== 'file:' && !/\/dev\//.test(location.pathname)) navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
 window.Atelier = {
   chapter, start, prepare, runPy, parseFill, fillNorm,
+  on, save, renderAll, renderView, renderTop, toast, go, exportState, mergeState, levelOf,
+  get state(){ return S; }, get view(){ return view; },
   get chapters(){ return CHAPTERS; }, get lessons(){ return LES; },
+  ext:{},
   h:{ ERR, strip, memOf, strOf, linesOf, nInputs, norm, esc, has }
 };
 })();

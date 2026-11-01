@@ -5,7 +5,23 @@ Un site pour apprendre **les bases de Python**, puis **la programmation orienté
 - **Partie 1 · Les bases** : 7 chapitres, 44 leçons (print, variables, types, conditions, boucles, fonctions, listes et dictionnaires, VS Code, erreurs, fichiers, projet final).
 - **Partie 2 · La POO** : 10 chapitres, 51 leçons (classes, encapsulation, membres statiques, égalité, héritage, polymorphisme, abstraction et interfaces, UML, exceptions et génériques, SOLID et design patterns). Chaque notion est vue en Python, puis en Java.
 
-Chaque leçon : une révision éclair, des explications courtes, des devinettes, des exercices corrigés automatiquement, un bug à réparer et une fiche mémo. La progression est enregistrée dans le navigateur de chaque élève.
+Chaque leçon : une révision éclair, des explications courtes, des devinettes, des exercices corrigés automatiquement, un bug à réparer et une fiche mémo.
+
+Pour donner envie de revenir : de l'XP, 12 niveaux (de « Œuf » à « Python légendaire »), une série de jours avec des gels de série, un objectif du jour, des combos, 15 badges, des confettis, et une carte à partager. Le site est une **appli installable** (PWA) qui marche hors ligne. Avec Supabase, il y a aussi des **comptes** et un **classement par classe**, remis à zéro chaque semaine.
+
+## Activer les comptes et le classement (Supabase)
+
+Sans cette étape, le site marche quand même : la progression reste dans le navigateur de chaque élève.
+
+1. Crée un projet gratuit sur [supabase.com](https://supabase.com).
+2. **SQL Editor** : colle le contenu de `supabase/schema.sql` et clique sur **Run**.
+3. **Authentication → Sign In / Providers** : active **Allow anonymous sign-ins**, **Email**, et **Allow manual linking** (pour qu'un élève puisse relier son compte à un e-mail ou à Google). Pour Google, il faut aussi un identifiant OAuth Google : suis le guide lié dans cette page.
+4. **Authentication → URL Configuration** : mets l'adresse du site (`https://TON-PSEUDO.github.io/atelier-python/`) dans *Site URL* et dans *Redirect URLs*.
+5. **Project Settings → API** : copie la *Project URL* et la clé *anon public* dans `config.js`, puis publie (`git commit` et `git push`).
+
+Les élèves rejoignent leur classe dans **Paramètres** avec un pseudo et un code de classe (par exemple `L2-INFO-B`), sans e-mail. Ils peuvent ensuite relier leur compte à Google ou à un e-mail pour le retrouver sur un autre appareil. Un lien `?classe=L2-INFO-B` invite directement dans la classe.
+
+À savoir : avec l'offre gratuite, l'envoi d'e-mails par Supabase est très limité (quelques e-mails par heure). C'est pour ça que l'entrée dans la classe se fait sans e-mail. Pour beaucoup de liens par e-mail, branche un service d'envoi (SMTP) dans les réglages Supabase. Un projet gratuit se met aussi en pause après une semaine sans aucune visite : il se relance d'un clic dans le tableau de bord.
 
 ## Mettre le site en ligne avec GitHub Pages
 

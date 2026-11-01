@@ -5,20 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Atelier Python</title>
 <meta name="description" content="Apprends les bases de Python puis la POO en Python et en Java, avec Pyo, en codant directement dans la page.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Crect width='30' height='30' rx='9' fill='%232A8770'/%3E%3Cpath d='M9 10l5 5-5 5M16 20h6' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Atelier Python">
+<meta property="og:title" content="Atelier Python">
+<meta property="og:description" content="Apprends Python et la POO en Python et Java avec Pyo, en codant directement dans la page.">
+<meta property="og:image" content="icons/icon-512.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;600;700;800;900&display=swap">
-<link rel="stylesheet" href="style.css?v=1">
+<link rel="stylesheet" href="style.css?v=2">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light} body{margin:0} img{max-width:100%} [hidden]{display:none!important}</style>
 </head>
 <body>
 <header class="top">
   <div class="top-in">
-    <button type="button" class="menu-btn" id="menu" aria-expanded="false" aria-controls="side"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12"/></svg>Sommaire</button>
+        <button type="button" class="menu-btn" id="menu" aria-expanded="true" aria-controls="side" aria-label="Afficher ou masquer le sommaire"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4.5h14v11H3zM8 4.5v11"/></svg></button>
     <button type="button" class="brand" data-go="accueil"><svg class="logo" viewBox="0 0 30 30" aria-hidden="true"><rect class="lg-bg" width="30" height="30" rx="9"/><path class="lg-fg" d="M9 10l5 5-5 5"/><path class="lg-fg" d="M16 20h6"/></svg><span>Atelier Python</span></button>
     <div class="where" id="where"></div>
-    <div class="prog" id="prog"></div>
+    <div class="hud" id="hud"></div>
   </div>
 </header>
 <div class="scrim" id="scrim"></div>
@@ -29,7 +38,10 @@
 
 <script src="vendor/skulpt/skulpt.min.js"></script>
 <script src="vendor/skulpt/skulpt-stdlib.js"></script>
-<script src="app.js?v=2"></script>
+<script src="config.js?v=1"></script>
+<script src="vendor/supabase/supabase.js"></script>
+<script src="app.js?v=4"></script>
+<script src="cloud.js?v=1"></script>
 <!-- Un fichier par chapitre. L'ordre ici ne compte pas : le site les range par partie et par numéro. -->
 <script src="lecons/bases-1.js?v=1"></script>
 <script src="lecons/bases-2.js?v=1"></script>

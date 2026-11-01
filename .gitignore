@@ -1,0 +1,6 @@
+# Fichiers locaux
+.claude/settings.local.json
+__pycache__/
+*.log
+.DS_Store
+Thumbs.db

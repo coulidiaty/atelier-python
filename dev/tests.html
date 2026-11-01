@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tests du contenu · Atelier Python</title>
+<style>
+  body{font:15px/1.5 system-ui,sans-serif;margin:0;padding:20px 16px 60px;background:#F4F7F6;color:#14211E}
+  h1{font-size:1.3rem;margin:0 0 4px}
+  #sum{font-weight:700;margin:6px 0 16px}
+  .ok{color:#1E8757}.ko{color:#C2453B}
+  table{border-collapse:collapse;width:100%;background:#fff;font-size:.88rem}
+  td,th{border-bottom:1px solid #DDE7E3;padding:6px 8px;text-align:left;vertical-align:top}
+  td.msg{font-family:ui-monospace,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
+  .wrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<h1>Tests du contenu</h1>
+<p>Filtre : ajoute <code>?ch=bases-2</code> ou <code>?ch=poo</code> à l'adresse. Seules les lignes en échec sont listées.</p>
+<div id="sum">Tests en cours…</div>
+<div class="wrap"><table><thead><tr><th>Leçon</th><th>Étape</th><th>Test</th><th>Détail</th></tr></thead><tbody id="rows"></tbody></table></div>
+
+<script src="../vendor/skulpt/skulpt.min.js"></script>
+<script src="../vendor/skulpt/skulpt-stdlib.js"></script>
+<script src="../app.js"></script>
+<script src="demo-poo.js"></script>
+<script src="../lecons/bases-1.js"></script>
+<script src="../lecons/bases-2.js"></script>
+<script src="../lecons/bases-3.js"></script>
+<script src="../lecons/bases-4.js"></script>
+<script src="../lecons/bases-5.js"></script>
+<script src="../lecons/bases-6.js"></script>
+<script src="../lecons/bases-7.js"></script>
+<script src="../lecons/poo-1.js"></script>
+<script src="../lecons/poo-2.js"></script>
+<script src="../lecons/poo-3.js"></script>
+<script src="../lecons/poo-4.js"></script>
+<script src="../lecons/poo-5.js"></script>
+<script src="../lecons/poo-6.js"></script>
+<script src="../lecons/poo-7.js"></script>
+<script src="../lecons/poo-8.js"></script>
+<script src="../lecons/poo-9.js"></script>
+<script src="../lecons/poo-10.js"></script>
+<script>
+(async () => {
+  const A = Atelier; A.prepare();
+  const filt = new URLSearchParams(location.search).get('ch') || '';
+  const res = { pass:0, fail:0, failures:[], lessons:0, steps:0 };
+  const rows = document.getElementById('rows');
+  const fail = (id, i, what, msg) => {
+    res.fail++; res.failures.push({ id, i, what, msg:String(msg) });
+    rows.insertAdjacentHTML('beforeend', `<tr><td>${id}</td><td>${i}</td><td class="ko">${what}</td><td class="msg">${A.h.esc(String(msg))}</td></tr>`);
+  };
+  const pass = () => res.pass++;
+  const tester = code => (inputs, c) => A.runPy(c === undefined ? code : c, { inputs:inputs || [] });
+  const ids = new Set();
+  for (const c of A.chapters) {
+    if (filt && !(c.key === filt || (!/-\d+$/.test(filt) && c.key.startsWith(filt)))) continue;
+    for (const L of c.lessons) {
+      res.lessons++;
+      const id = L.id;
+      if (ids.has(id)) fail(id, '-', 'id unique', 'id utilisé deux fois'); ids.add(id);
+      if (!L.title || !L.dur || !L.intro) fail(id, '-', 'en-tête', 'title, dur ou intro manquant');
+      if (!Array.isArray(L.recap) || L.recap.length < 3) fail(id, '-', 'fiche mémo', 'recap doit avoir au moins 3 points');
+      if (!L.steps || L.steps.length < 4) fail(id, '-', 'étapes', 'moins de 4 étapes');
+      for (const [i, s] of (L.steps || []).entries()) {
+        res.steps++;
+        try {
+          if (!s.h) fail(id, i, 'titre', 'h manquant');
+          if (s.t === 'quiz') {
+            const n = s.opts.filter(o => o.ok).length;
+            if (n !== 1) fail(id, i, 'quiz', `${n} bonnes réponses au lieu de 1`);
+            else if (s.opts.some(o => !o.ok && !o.why)) fail(id, i, 'quiz', 'une mauvaise réponse sans explication (why)');
+            else if (!s.ex) fail(id, i, 'quiz', 'explication ex manquante');
+            else pass();
+          } else if (s.t === 'fill') {
+            const blanks = A.parseFill(s.tpl || '').filter(p => p.blank);
+            if (!blanks.length) fail(id, i, 'trous', 'aucun [[trou]] dans tpl'); else pass();
+            if (!s.hints || s.hints.length < 1) fail(id, i, 'trous', 'il faut au moins un indice');
+          } else if (s.t === 'compare') {
+            if (!s.py || !s.java) fail(id, i, 'comparaison', 'py ou java manquant'); else pass();
+          } else if (s.t === 'say') {
+            if (s.code !== undefined) {
+              const r = await A.runPy(s.code, { inputs:s.solIn || [] });
+              if (r.err) fail(id, i, 'exemple', 'le code d’exemple plante : ' + r.err.raw); else pass();
+            } else pass();
+          } else if (s.t === 'code') {
+            if (typeof s.check !== 'function') { fail(id, i, 'code', 'check manquant'); continue; }
+            if (!s.hints || s.hints.length < 2) fail(id, i, 'code', 'il faut au moins 2 indices');
+            if (s.sol === undefined) { fail(id, i, 'solution', 'sol manquante : impossible de tester'); continue; }
+            const r = await A.runPy(s.sol, { inputs:s.solIn || [] });
+            const v = await s.check(r, s.sol, tester(s.sol));
+            if (v !== true) fail(id, i, 'solution refusée', (r.err ? '[erreur Python] ' + r.err.raw + '\n' : '') + v); else pass();
+            if (!s.carry) {
+              const r0 = await A.runPy(s.code, { inputs:s.solIn || [] });
+              const v0 = await s.check(r0, s.code, tester(s.code));
+              if (v0 === true) fail(id, i, 'départ accepté', 'le code de départ passe déjà la correction'); else pass();
+            }
+          } else fail(id, i, 'type', 'type d’étape inconnu : ' + s.t);
+        } catch (e) { fail(id, i, 'exception', e && e.stack || e); }
+      }
+    }
+  }
+  res.done = true;
+  window.__results = res;
+  const sum = document.getElementById('sum');
+  sum.innerHTML = `${res.lessons} leçons, ${res.steps} étapes · <span class="ok">${res.pass} réussis</span> · <span class="${res.fail ? 'ko' : 'ok'}">${res.fail} en échec</span>`;
+})();
+</script>
+</body>
+</html>

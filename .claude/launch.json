@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "atelier",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8000", "--bind", "127.0.0.1"],
+      "port": 8000
+    },
+    {
+      "name": "atelier-bases",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8001", "--bind", "127.0.0.1"],
+      "port": 8001
+    },
+    {
+      "name": "atelier-poo",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8002", "--bind", "127.0.0.1"],
+      "port": 8002
+    }
+  ]
+}

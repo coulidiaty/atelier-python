@@ -1,0 +1,624 @@
+<title>Esquisses Atelier Python</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;600;800&family=Press+Start+2P&family=Rubik:wght@400;500;700&display=swap">
+<style>
+/* Layout : une appli d'apprentissage. Barre du haut, carte du parcours, leçon en petites étapes.
+   Chaque style réarrange ces mêmes pièces : pro = colonne + sommaire, jeu = carte de niveaux + missions, mentor = discussion. */
+:root{
+  /* Sobre et pro : bleu et jaune de Python sur des gris froids */
+  --pro-bg:#F3F6FA; --pro-surface:#FFFFFF; --pro-surface-2:#E7EDF5; --pro-fg:#13202F; --pro-muted:#56677A; --pro-line:#D6DFEA;
+  --pro-accent:#2F6DB3; --pro-accent-fg:#FFFFFF; --pro-accent-2:#E9B824; --pro-ok:#1E8752; --pro-ko:#C03D35; --pro-code-bg:#0F1A28;
+  /* Mentor : vert sauge, orange chaud */
+  --m-bg:#ECF3F0; --m-surface:#FFFFFF; --m-surface-2:#DAE8E3; --m-fg:#1A2926; --m-muted:#596D68; --m-line:#CFDFD9;
+  --m-accent:#2A8770; --m-accent-fg:#FFFFFF; --m-accent-2:#E8922F; --m-ok:#1F8A5B; --m-ko:#C2453B; --m-code-bg:#172523;
+  /* Jeu vidéo : nuit violette, or et corail (un seul thème, toujours sombre) */
+  --q-bg:#161129; --q-surface:#211939; --q-surface-2:#2C2250; --q-fg:#F4EFFF; --q-muted:#A99DCE; --q-line:#41347A;
+  --q-accent:#FFC44D; --q-accent-fg:#241A05; --q-accent-2:#FF6B8B; --q-ok:#58E0A0; --q-ko:#FF7A7A; --q-code-bg:#0D0A1A;
+  --code-fg:#E4ECF5; --code-muted:#8396AB; --code-line:rgb(255 255 255 / .09); --code-err-bg:rgb(255 96 96 / .13); --code-err-fg:#FFD7D3;
+  --f-code:"JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  --bg:var(--pro-bg); --surface:var(--pro-surface); --surface-2:var(--pro-surface-2); --fg:var(--pro-fg); --muted:var(--pro-muted); --line:var(--pro-line);
+  --accent:var(--pro-accent); --accent-fg:var(--pro-accent-fg); --accent-2:var(--pro-accent-2); --ok:var(--pro-ok); --ko:var(--pro-ko); --code-bg:var(--pro-code-bg);
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif; --f-body:"Figtree", "Segoe UI", system-ui, sans-serif;
+  --radius:10px; --radius-lg:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --pro-bg:#0D141D; --pro-surface:#141E2A; --pro-surface-2:#1C2938; --pro-fg:#E6EDF5; --pro-muted:#93A3B5; --pro-line:#253445;
+    --pro-accent:#6FA6E8; --pro-accent-fg:#08111C; --pro-accent-2:#F2C94C; --pro-ok:#4CC38A; --pro-ko:#F07167; --pro-code-bg:#08101A;
+    --m-bg:#0F1816; --m-surface:#16221F; --m-surface-2:#1F2F2B; --m-fg:#E2EEEA; --m-muted:#8FA59F; --m-line:#26372F;
+    --m-accent:#54C2A3; --m-accent-fg:#06140F; --m-accent-2:#F4B55E; --m-ok:#5BCB93; --m-ko:#F07B70; --m-code-bg:#0A1210;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --pro-bg:#0D141D; --pro-surface:#141E2A; --pro-surface-2:#1C2938; --pro-fg:#E6EDF5; --pro-muted:#93A3B5; --pro-line:#253445;
+  --pro-accent:#6FA6E8; --pro-accent-fg:#08111C; --pro-accent-2:#F2C94C; --pro-ok:#4CC38A; --pro-ko:#F07167; --pro-code-bg:#08101A;
+  --m-bg:#0F1816; --m-surface:#16221F; --m-surface-2:#1F2F2B; --m-fg:#E2EEEA; --m-muted:#8FA59F; --m-line:#26372F;
+  --m-accent:#54C2A3; --m-accent-fg:#06140F; --m-accent-2:#F4B55E; --m-ok:#5BCB93; --m-ko:#F07B70; --m-code-bg:#0A1210;
+  color-scheme:dark;
+}
+:root[data-skin="mentor"]{
+  --bg:var(--m-bg); --surface:var(--m-surface); --surface-2:var(--m-surface-2); --fg:var(--m-fg); --muted:var(--m-muted); --line:var(--m-line);
+  --accent:var(--m-accent); --accent-fg:var(--m-accent-fg); --accent-2:var(--m-accent-2); --ok:var(--m-ok); --ko:var(--m-ko); --code-bg:var(--m-code-bg);
+  --f-display:"Nunito", "Segoe UI", system-ui, sans-serif; --f-body:"Nunito", "Segoe UI", system-ui, sans-serif;
+  --radius:16px; --radius-lg:22px;
+}
+:root[data-skin="quete"]{
+  --bg:var(--q-bg); --surface:var(--q-surface); --surface-2:var(--q-surface-2); --fg:var(--q-fg); --muted:var(--q-muted); --line:var(--q-line);
+  --accent:var(--q-accent); --accent-fg:var(--q-accent-fg); --accent-2:var(--q-accent-2); --ok:var(--q-ok); --ko:var(--q-ko); --code-bg:var(--q-code-bg);
+  --f-display:"Press Start 2P", "Courier New", monospace; --f-body:"Rubik", "Segoe UI", system-ui, sans-serif;
+  --radius:4px; --radius-lg:6px;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.55 var(--f-body);transition:background-color .25s}
+[data-skin="mentor"] body{font-size:17px}
+[data-skin="quete"] body{background-color:var(--bg);background-image:linear-gradient(rgb(255 255 255 / .025) 1px,transparent 1px),linear-gradient(90deg,rgb(255 255 255 / .025) 1px,transparent 1px);background-size:24px 24px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+code{font-family:var(--f-code);font-size:.88em;background:var(--surface-2);padding:1px 6px;border-radius:5px}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- Barre du haut ---------- */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+[data-skin="quete"] .top{border-bottom:3px solid var(--line)}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top-in{display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px;padding-block:12px}
+.brand{display:flex;align-items:center;gap:10px;font:800 1.15rem/1 var(--f-display)}
+[data-skin="quete"] .brand{font-size:.72rem}
+.logo{width:30px;height:30px;flex:none}
+.logo .lg-bg{fill:var(--accent)}
+.logo .lg-fg{fill:none;stroke:var(--accent-fg);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.brand-tag{font:700 .66rem/1 var(--f-body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);border:1px solid var(--line);padding:4px 8px;border-radius:99px}
+.switch{display:flex;gap:4px;padding:4px;background:var(--surface-2);border-radius:calc(var(--radius) + 4px);margin-left:auto}
+.switch button{border:0;background:transparent;color:var(--muted);font:700 .88rem/1 var(--f-body);padding:9px 14px;border-radius:var(--radius);cursor:pointer;white-space:nowrap}
+.switch button:hover{color:var(--fg)}
+.switch button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgb(0 0 0 / .14)}
+[data-skin="quete"] .switch button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.hud{position:relative;display:flex;align-items:center;gap:12px;min-width:0}
+.prog{display:flex;flex-direction:column;gap:5px;min-width:130px}
+.prog-label{font-size:.78rem;font-weight:700;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:inherit;transition:width .5s ease}
+.xp{font:800 .9rem/1 var(--f-body);font-variant-numeric:tabular-nums;color:var(--accent);white-space:nowrap}
+.lvl,.streak{display:none}
+[data-skin="quete"] .lvl{display:inline-block;font:400 .6rem/1 var(--f-display);background:var(--accent);color:var(--accent-fg);padding:7px 8px;border-radius:2px;box-shadow:0 3px 0 #9C6F14}
+[data-skin="quete"] .streak.on{display:inline-block;font:400 .55rem/1 var(--f-display);color:var(--accent-2)}
+[data-skin="quete"] .bar{border-radius:0;height:12px;border:2px solid var(--line);background:var(--q-code-bg)}
+[data-skin="quete"] .bar i{border-radius:0;background:repeating-linear-gradient(90deg,var(--accent) 0 8px,transparent 8px 10px)}
+[data-skin="quete"] .prog-label{font:400 .5rem/1.2 var(--f-display);color:var(--muted)}
+[data-skin="quete"] .xp{display:none}
+[data-skin="mentor"] .xp{display:none}
+.xp-pop{position:absolute;right:0;top:calc(100% + 4px);font:800 .95rem/1 var(--f-body);color:var(--accent);pointer-events:none;animation:pop 1.2s ease-out forwards;white-space:nowrap}
+[data-skin="quete"] .xp-pop{font:400 .65rem/1 var(--f-display);text-shadow:2px 2px 0 rgb(0 0 0 / .5)}
+[data-skin="mentor"] .xp-pop{display:none}
+@keyframes pop{0%{opacity:0;transform:translateY(8px)}20%{opacity:1}100%{opacity:0;transform:translateY(-22px)}}
+
+/* ---------- Note d'esquisse ---------- */
+.note{border-bottom:1px solid var(--line);background:var(--surface-2)}
+.note-in{padding-block:10px;font-size:.88rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 18px;align-items:baseline}
+.note-in p{margin:0}
+.note details summary{cursor:pointer;font-weight:700;color:var(--fg)}
+.note details ul{margin:8px 0 4px;padding-left:20px;display:grid;gap:3px;color:var(--fg)}
+.note details{flex:1 1 100%}
+
+/* ---------- Mise en page ---------- */
+.layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:40px;padding-block:28px 96px}
+[data-skin="quete"] .layout{grid-template-columns:minmax(0,1fr);gap:24px;max-width:900px}
+[data-skin="mentor"] .layout{grid-template-columns:minmax(0,1fr);max-width:760px}
+[data-skin="mentor"] .course{display:none}
+
+/* Parcours : sommaire (pro) */
+.course{align-self:start;position:sticky;top:calc(env(safe-area-inset-top,0px) + 86px);min-width:0}
+.course-title{margin:0 0 10px;font:700 .72rem/1 var(--f-body);text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.chaps{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.chap{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:center;padding:8px 10px;border-radius:var(--radius);font-size:.92rem}
+.chap .num{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--surface-2);font-weight:700;font-size:.78rem;color:var(--muted)}
+.chap .num svg{width:13px;height:13px}
+.chap .num svg path{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+.chap .num svg rect{fill:currentColor}
+.chap .ct{display:flex;flex-direction:column;min-width:0}
+.chap .ct small{font-size:.72rem;color:var(--muted)}
+.chap.current{background:var(--surface);box-shadow:0 1px 3px rgb(0 0 0 / .08)}
+.chap.current .num{background:var(--accent);color:var(--accent-fg)}
+.chap.current .ct small{color:var(--accent);font-weight:700}
+.chap.locked .ct span{color:var(--muted)}
+
+/* Parcours : carte des niveaux (jeu) */
+[data-skin="quete"] .course{position:static;overflow-x:auto;padding-bottom:6px}
+[data-skin="quete"] .course-title{font:400 .55rem/1 var(--f-display);color:var(--accent-2);letter-spacing:.04em}
+[data-skin="quete"] .chaps{display:flex;gap:0;min-width:max-content}
+[data-skin="quete"] .chap{position:relative;width:96px;grid-template-columns:1fr;justify-items:center;text-align:center;gap:8px;padding:6px 4px;background:none;box-shadow:none}
+[data-skin="quete"] .chap:not(:last-child)::after{content:"";position:absolute;top:28px;left:calc(50% + 24px);width:calc(100% - 48px);border-top:4px dotted var(--line)}
+[data-skin="quete"] .chap .num{width:44px;height:44px;border-radius:2px;border:3px solid var(--line);background:var(--surface);font:400 .7rem/1 var(--f-display)}
+[data-skin="quete"] .chap.current .num{border-color:var(--accent);background:var(--accent);color:var(--accent-fg);box-shadow:0 0 0 4px rgb(255 196 77 / .22),0 4px 0 #9C6F14}
+[data-skin="quete"] .chap .ct span{font-size:.72rem;line-height:1.25}
+[data-skin="quete"] .chap .ct small{display:none}
+[data-skin="quete"] .chap.current .ct span{color:var(--accent);font-weight:700}
+
+/* ---------- Leçon ---------- */
+.lesson{display:flex;flex-direction:column;gap:20px;min-width:0;max-width:780px}
+[data-skin="quete"] .lesson,[data-skin="mentor"] .lesson{max-width:none}
+.lesson-head h1{margin:4px 0 6px;font:800 clamp(1.7rem,4vw,2.3rem)/1.1 var(--f-display);text-wrap:balance;letter-spacing:-.01em}
+.lesson-head .meta{margin:0;color:var(--muted)}
+.goals{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.9rem}
+.goals li{display:flex;align-items:center;gap:6px}
+.goals li::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--accent-2)}
+[data-skin="quete"] .lesson-head h1{font:400 clamp(1rem,3.4vw,1.45rem)/1.5 var(--f-display);color:var(--accent);text-shadow:3px 3px 0 rgb(0 0 0 / .45)}
+[data-skin="quete"] .lesson-head .kicker{color:var(--accent-2)}
+
+.kicker{margin:0;font:800 .72rem/1.2 var(--f-body);text-transform:uppercase;letter-spacing:.09em;color:var(--accent)}
+[data-skin="quete"] .kicker{font:400 .55rem/1.4 var(--f-display);letter-spacing:.02em;color:var(--accent-2)}
+.done-tag{color:var(--ok)}
+
+.step{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.who{display:none}
+.bubble{min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:22px 24px}
+.bubble h2{margin:6px 0 10px;font:800 1.3rem/1.25 var(--f-display);text-wrap:balance}
+.body p{margin:0 0 10px;max-width:65ch}
+.body p:last-child{margin-bottom:0}
+.small{font-size:.86rem;color:var(--muted)}
+.reply{display:none}
+
+[data-skin="quete"] .bubble{border:3px solid var(--line);box-shadow:6px 6px 0 rgb(0 0 0 / .35)}
+[data-skin="quete"] .step.is-current .bubble{border-color:var(--accent)}
+[data-skin="quete"] .bubble h2{font:400 .9rem/1.6 var(--f-display);color:var(--fg)}
+
+[data-skin="mentor"] .step{grid-template-columns:44px minmax(0,1fr);column-gap:12px}
+[data-skin="mentor"] .who{display:block;padding-top:2px}
+[data-skin="mentor"] .bubble{border:0;border-radius:6px var(--radius-lg) var(--radius-lg) var(--radius-lg);box-shadow:0 1px 2px rgb(0 0 0 / .06),0 6px 20px rgb(0 0 0 / .05)}
+[data-skin="mentor"] .bubble h2{font-size:1.12rem;margin-top:0}
+[data-skin="mentor"] .kicker{display:none}
+[data-skin="mentor"] .reply{display:flex;grid-column:2;justify-content:flex-end}
+.reply p{margin:0;background:var(--accent);color:var(--accent-fg);padding:10px 16px;border-radius:var(--radius-lg) 6px var(--radius-lg) var(--radius-lg);font-weight:600;max-width:85%}
+.pyo{width:40px;height:40px;display:block}
+.pyo .p-skin{fill:var(--accent)}
+.pyo .p-eye{fill:#FFFFFF}
+.pyo .p-pupil{fill:#12201C}
+.pyo .p-mouth{fill:none;stroke:#FFFFFF;stroke-width:2;stroke-linecap:round}
+.pyo .p-tongue{fill:none;stroke:var(--ko);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* Code en lecture seule */
+.snippet{margin:12px 0 0;background:var(--code-bg);color:var(--code-fg);font:15px/1.6 var(--f-code);padding:14px 16px;border-radius:var(--radius);overflow-x:auto}
+
+/* Éditeur + console */
+.ide{margin-top:14px;border-radius:var(--radius);overflow:hidden;background:var(--code-bg);border:1px solid var(--line)}
+[data-skin="quete"] .ide{border:3px solid #000}
+.ide:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.ide-bar{display:flex;align-items:center;gap:12px;padding:7px 8px 7px 14px;border-bottom:1px solid var(--code-line);background:rgb(255 255 255 / .03)}
+.file{display:flex;align-items:center;gap:8px;font:13px var(--f-code);color:var(--code-muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file i{width:8px;height:8px;border-radius:50%;background:var(--accent-2);flex:none}
+.kbd{margin-left:auto;font:12px var(--f-code);color:var(--code-muted);white-space:nowrap}
+.run{border:0;border-radius:calc(var(--radius) - 3px);background:var(--accent);color:var(--accent-fg);font:800 .86rem/1 var(--f-body);padding:9px 14px;cursor:pointer;white-space:nowrap}
+.run:disabled{opacity:.6;cursor:wait}
+[data-skin="quete"] .run{font:400 .58rem/1 var(--f-display);padding:10px 12px;box-shadow:0 3px 0 #9C6F14}
+textarea.code{display:block;width:100%;border:0;resize:vertical;background:transparent;color:var(--code-fg);font:15px/1.6 var(--f-code);padding:14px 16px;tab-size:4;outline:none;white-space:pre;overflow-x:auto;caret-color:var(--accent-2)}
+.console{border-top:1px solid var(--code-line);padding:10px 16px 14px}
+.console-label{font:700 .66rem/1 var(--f-body);text-transform:uppercase;letter-spacing:.12em;color:var(--code-muted)}
+.out{margin:8px 0 0;font:14px/1.55 var(--f-code);color:var(--code-fg);white-space:pre-wrap;word-break:break-word}
+.out.empty{color:var(--code-muted);font-style:italic}
+.err-box{margin-top:10px;background:var(--code-err-bg);border:1px solid rgb(255 120 120 / .35);border-radius:8px;padding:10px 12px;color:var(--code-err-fg);font:14px/1.5 var(--f-body)}
+.err-box b{display:block;color:#FFFFFF}
+.err-box p{margin:4px 0 0}
+.err-box code{background:rgb(255 255 255 / .1);color:#FFFFFF}
+.err-raw{display:block;margin-top:8px;font:12px/1.4 var(--f-code);color:#F0A49D;word-break:break-word}
+.memory{border-top:1px solid var(--code-line);padding:10px 16px 16px}
+.boxes{display:flex;flex-wrap:wrap;gap:16px 12px;margin-top:18px}
+.box{position:relative;min-width:96px;max-width:100%;border:2px solid var(--accent-2);border-radius:8px;padding:14px 12px 8px;color:var(--code-fg);font:15px var(--f-code);word-break:break-word}
+.box .tag{position:absolute;top:-11px;left:8px;background:var(--accent-2);color:#1C1404;font:700 .74rem/1 var(--f-code);padding:4px 8px;border-radius:5px}
+.box .type{display:block;margin-top:4px;font:.7rem/1.3 var(--f-body);color:var(--code-muted)}
+.mem-empty{margin:8px 0 0;font-size:.85rem;color:var(--code-muted);font-style:italic}
+
+/* Quiz */
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+.opt{text-align:left;border:2px solid var(--line);background:var(--surface);color:var(--fg);border-radius:var(--radius);padding:12px 14px;font:600 1rem/1.3 var(--f-code);cursor:pointer}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt:disabled{cursor:default}
+.opt.wrong{border-color:var(--ko);color:var(--ko);text-decoration:line-through}
+.opt.right{border-color:var(--ok);color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--surface))}
+[data-skin="quete"] .opt{border-width:3px;background:var(--surface-2)}
+
+/* Retours, indices, boutons */
+.fb{margin-top:14px;padding:12px 14px;border-radius:var(--radius);font-size:.96rem}
+.fb.ok{background:color-mix(in srgb,var(--ok) 14%,transparent)}
+.fb.ko{background:color-mix(in srgb,var(--ko) 13%,transparent)}
+.fb b{margin-right:4px}
+.fb.ok b{color:var(--ok)}
+.hint{margin-top:10px;padding:10px 14px;border-radius:var(--radius);background:color-mix(in srgb,var(--accent-2) 20%,transparent);font-size:.95rem}
+.hint b{margin-right:4px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;align-items:center}
+.btn{border:0;border-radius:var(--radius);padding:11px 18px;font:800 .95rem/1 var(--f-body);cursor:pointer;background:var(--accent);color:var(--accent-fg)}
+.btn.ghost{background:transparent;color:var(--fg);border:1.5px solid var(--line)}
+.btn.ghost:hover{border-color:var(--accent)}
+[data-skin="quete"] .btn{font:400 .6rem/1.2 var(--f-display);padding:12px 14px;box-shadow:0 4px 0 #9C6F14}
+[data-skin="quete"] .btn.ghost{box-shadow:none;border:3px solid var(--line)}
+[data-skin="quete"] .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #9C6F14}
+.wait{font-size:.88rem;color:var(--muted)}
+
+/* Récap */
+.recap{margin:0;padding-left:20px;display:grid;gap:6px}
+.vscode{margin-top:16px;padding:14px 16px;border-radius:var(--radius);background:var(--surface-2)}
+.vscode p{margin:0}
+.vs-title{font-weight:800;margin-bottom:4px!important}
+.badge{display:flex;gap:14px;align-items:center;margin-top:16px}
+.badge svg{width:60px;height:60px;flex:none}
+.badge .b-out{fill:var(--accent-2)}
+.badge .b-in{fill:var(--surface)}
+.badge .b-star{fill:var(--accent-2)}
+.badge p{margin:0}
+.badge-name{font:800 1.05rem/1.3 var(--f-display)}
+[data-skin="quete"] .badge-name{font:400 .7rem/1.5 var(--f-display);color:var(--accent)}
+.badge-sub{font-size:.88rem;color:var(--muted)}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:11px 16px;border-radius:var(--radius);font-weight:700;font-size:.92rem;max-width:calc(100% - 32px);z-index:20;box-shadow:0 6px 24px rgb(0 0 0 / .25)}
+
+@media (max-width:900px){
+  .layout{grid-template-columns:minmax(0,1fr);gap:22px}
+  .course{position:static;overflow-x:auto;padding-bottom:4px}
+  .chaps{display:flex;gap:6px;min-width:max-content}
+  .chap{width:190px}
+}
+@media (max-width:640px){
+  .switch{order:3;margin-left:0;width:100%}
+  .switch button{flex:1;padding:9px 6px;font-size:.82rem}
+  .hud{margin-left:auto}
+  .prog{min-width:96px}
+  .bubble{padding:18px 16px}
+  .kbd{display:none}
+  .file{margin-right:auto}
+  [data-skin="mentor"] .step{grid-template-columns:32px minmax(0,1fr);column-gap:8px}
+  .pyo{width:32px;height:32px}
+}
+@media (max-width:480px){ .opts{grid-template-columns:minmax(0,1fr)} }
+@media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important;scroll-behavior:auto!important} }
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="wrap top-in">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 30 30" aria-hidden="true"><rect class="lg-bg" width="30" height="30" rx="8"/><path class="lg-fg" d="M9 10l5 5-5 5"/><path class="lg-fg" d="M16 20h6"/></svg>
+        <span>Atelier Python</span>
+        <span class="brand-tag">esquisse</span>
+      </div>
+      <div class="switch" role="group" aria-label="Choisir le style">
+        <button type="button" data-pick="pro">Sobre et pro</button>
+        <button type="button" data-pick="quete">Jeu vidéo</button>
+        <button type="button" data-pick="mentor">Mentor</button>
+      </div>
+      <div class="hud" id="hud"></div>
+    </div>
+  </header>
+  <div class="note">
+    <div class="wrap note-in">
+      <p>Même leçon, trois styles. Change de style en haut quand tu veux : ta progression est gardée. Le code Python s'exécute vraiment dans la page.</p>
+      <details>
+        <summary>Comment cette leçon aide à apprendre</summary>
+        <ul>
+          <li>Tu codes dès la première minute, pas de gros pavé à lire.</li>
+          <li>Tu devines avant d'exécuter : ça oblige à réfléchir au lieu de lire.</li>
+          <li>Tu tapes toi-même : le copier-coller est désactivé dans les exercices.</li>
+          <li>Des indices progressifs, jamais la solution d'un coup.</li>
+          <li>Les erreurs sont expliquées en français, avec la ligne en cause.</li>
+          <li>La mémoire de Python est visible : chaque variable apparaît comme une boîte.</li>
+          <li>Chaque leçon finit par un récap court et le passage à VS Code.</li>
+        </ul>
+      </details>
+    </div>
+  </div>
+  <div class="wrap layout">
+    <aside class="course" id="course" aria-label="Parcours"></aside>
+    <main class="lesson" id="lesson"></main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+<script>
+const PYO = `<svg class="pyo" viewBox="0 0 40 40" aria-hidden="true"><circle class="p-skin" cx="20" cy="20" r="19"/><circle class="p-eye" cx="14" cy="17" r="4.4"/><circle class="p-eye" cx="26" cy="17" r="4.4"/><circle class="p-pupil" cx="15" cy="18" r="2.1"/><circle class="p-pupil" cx="27" cy="18" r="2.1"/><path class="p-mouth" d="M14 25.5 Q20 30.5 26 25.5"/><path class="p-tongue" d="M20 28.3 v4.2 M20 32.5 l-2.2 2.2 M20 32.5 l2.2 2.2"/></svg>`;
+const BADGE = `<svg viewBox="0 0 64 64" aria-hidden="true"><path class="b-out" d="M32 2 58 17v30L32 62 6 47V17z"/><path class="b-in" d="M32 9 52 20.5v23L32 55 12 43.5v-23z"/><path class="b-star" d="M32 19l4 8.3 9.1 1.2-6.7 6.3 1.7 9L32 39.4l-8.1 4.4 1.7-9-6.7-6.3 9.1-1.2z"/></svg>`;
+const LOCK = `<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M4.5 6.5V4.8a2.5 2.5 0 0 1 5 0v1.7"/><rect x="3" y="6.5" width="8" height="6" rx="1.5"/></svg>`;
+
+const CHAPS = {
+  pro:['Afficher et variables','Conditions : if / else','Boucles : for / while','Fonctions','Listes et dictionnaires','Coder dans VS Code','POO : classes et objets','POO : héritage','Projet final'],
+  quete:['Le terminal s’éveille','Le carrefour des choix','La tour des boucles','L’atelier des fonctions','Le grand inventaire','Le vrai terminal','La forge des objets','La lignée des classes','Le boss final']
+};
+const KIND = {
+  explain:{pro:'Comprendre',quete:'Découverte'}, quiz:{pro:'Deviner',quete:'Énigme'},
+  code:{pro:'Pratiquer',quete:'Défi'}, bug:{pro:'Réparer',quete:'Boss'}, recap:{pro:'Retenir',quete:'Récompense'}
+};
+const NEXT = {pro:'Continuer', quete:'Mission suivante', mentor:'On continue'};
+const OKW = {pro:'Correct.', quete:'Mission réussie !', mentor:'Bien joué !'};
+const TYPE = {str:'texte (str)', int:'nombre entier (int)', float:'nombre à virgule (float)', bool:'vrai ou faux (bool)', list:'liste (list)', dict:'dictionnaire (dict)', NoneType:'rien (None)'};
+const ERR = 'Python a rencontré une erreur. Lis l’explication dans la console, juste au-dessus.';
+
+const STEPS = [
+  { kind:'explain', xp:5, file:'bonjour.py',
+    title:{pro:'Afficher du texte avec print()', quete:'Fais parler la machine', mentor:'Première chose : faire parler Python'},
+    body:`<p><code>print()</code> affiche à l'écran ce que tu mets entre ses parenthèses. Le texte se met <strong>entre guillemets</strong>.</p><p>Clique sur <strong>Exécuter</strong> et regarde la console. Ensuite, change le texte et exécute encore.</p>`,
+    code:'print("Salut !")\nprint("Je parle Python.")',
+    reply:()=> 'J’ai exécuté le code, ça marche.' },
+  { kind:'quiz',
+    title:{pro:'Devine avant d’exécuter', quete:'L’énigme du calcul', mentor:'Petite devinette'},
+    body:`<p>Sans exécuter : qu'affiche ce code ?</p>`, snippet:'print(2 + 3)',
+    options:[
+      {label:'2 + 3', why:'Ça, ce serait avec des guillemets : <code>print("2 + 3")</code>. Ici il n’y en a pas, donc Python calcule.'},
+      {label:'5', right:true},
+      {label:'23', why:'Bien vu le piège, mais 23 arriverait avec du texte : <code>"2" + "3"</code>. Ici ce sont des nombres.'},
+      {label:'Une erreur', why:'Pas d’erreur ici : Python sait très bien calculer.'}
+    ],
+    ok:'Sans guillemets, Python calcule : <code>2 + 3</code> donne <code>5</code>. Avec des guillemets, <code>print("2 + 3")</code> afficherait le texte tel quel.',
+    reply:st=> `Je pense que ça affiche ${st.picked.length>1?'… finalement ':''}5.` },
+  { kind:'code', xp:20, file:'exercice_1.py',
+    title:{pro:'À toi : dis bonjour', quete:'Défi : salue le terminal', mentor:'À ton tour !'},
+    body:`<p>Écris une ligne qui affiche <strong>Bonjour</strong> suivi de ton prénom.</p><p class="small">Ici, on tape soi-même : le copier-coller est désactivé dans les exercices.</p>`,
+    code:'# Écris ta ligne en dessous\n',
+    hints:['Il te faut <code>print()</code> et du texte entre guillemets.','La forme : <code>print("Bonjour ...")</code>, en remplaçant les points par ton prénom.'],
+    check:r=> r.err ? ERR : !r.out.trim() ? 'Rien ne s’affiche. As-tu bien utilisé <code>print()</code> ?' : !/bonjour/i.test(r.out) ? 'Ça s’affiche, mais je ne vois pas le mot « Bonjour ».' : r.out.trim().toLowerCase()==='bonjour' ? 'Presque ! Ajoute ton prénom après Bonjour.' : true,
+    ok:'Ta première ligne de code écrite toute seule.',
+    reply:()=> 'C’est bon, ça affiche mon bonjour !' },
+  { kind:'explain', xp:5, file:'boites.py', showMem:true,
+    title:{pro:'Les variables : des boîtes avec une étiquette', quete:'Débloque l’inventaire', mentor:'Ranger des choses dans des boîtes'},
+    body:`<p>Une <strong>variable</strong>, c'est une boîte avec une étiquette. On range une valeur dedans avec <code>=</code>, puis on la réutilise avec son nom, sans guillemets.</p><p>Exécute, puis regarde la <strong>Mémoire de Python</strong> sous la console : chaque boîte apparaît.</p>`,
+    code:'prenom = "Léa"\nage = 19\nprint(prenom)\nprint(age + 1)',
+    reply:()=> 'Je vois les boîtes prenom et age !' },
+  { kind:'code', xp:20, file:'exercice_2.py', showMem:true,
+    title:{pro:'À toi : calcule avec une variable', quete:'Défi : double ton score', mentor:'On teste avec un score ?'},
+    body:`<p>Crée une variable <code>score</code> qui vaut <code>10</code>. Puis affiche le double du score, <strong>sans écrire 20 toi-même</strong> : laisse Python calculer.</p>`,
+    code:'# 1. Crée la boîte score\n\n# 2. Affiche le double\n',
+    hints:['<code>score = 10</code> crée la boîte.','Le double, c’est <code>score * 2</code>. Mets-le dans <code>print()</code>.'],
+    check:(r,code)=>{
+      if(r.err) return ERR;
+      const sc=(r.mem||[]).find(m=>m.name==='score');
+      if(!sc) return 'Je ne trouve pas de boîte <code>score</code> dans la mémoire. Commence par <code>score = 10</code>.';
+      if(sc.repr!=='10') return `Ta boîte <code>score</code> contient ${esc(sc.repr)}. Il faut 10.`;
+      if(/(^|[^\w.])20(?![\w.])/.test(code.replace(/#.*/g,''))) return 'Tu as écrit 20 toi-même. Laisse Python calculer avec <code>score * 2</code>.';
+      if(!/(^|\D)20(\D|$)/.test(r.out)) return 'La boîte est prête. Maintenant, affiche le double avec <code>print()</code>.';
+      return true;
+    },
+    ok:'Python a fait le calcul à ta place. C’est tout l’intérêt des variables.',
+    reply:()=> 'Ça affiche 20, sans que je l’écrive !' },
+  { kind:'bug', xp:25, file:'bug.py',
+    title:{pro:'Répare le bug', quete:'Boss : le bug de la majuscule', mentor:'Oups, ce code plante…'},
+    body:`<p>Ce programme devrait afficher <code>Salut Alex</code>, mais il plante. Exécute-le, lis l'explication de l'erreur, puis répare-le.</p>`,
+    code:'nom = "Alex"\nprint("Salut " + Nom)',
+    hints:['Lis l’erreur : quel nom Python ne connaît pas ?','Pour Python, <code>Nom</code> et <code>nom</code> sont deux noms différents.'],
+    check:(r,code)=> code.trim()===STEPS[5].code ? 'Voilà le bug ! Lis l’explication dans la console, puis corrige le code.' : r.err ? 'Le code plante encore. Lis l’explication dans la console.' : !/Salut Alex/.test(r.out) ? 'Plus d’erreur, mais il faut afficher exactement <code>Salut Alex</code>.' : true,
+    ok:'Tu as lu une vraie erreur Python et tu l’as corrigée. Les développeurs passent leur temps à ça.',
+    reply:()=> 'Réparé : c’était la majuscule !' },
+  { kind:'recap',
+    title:{pro:'Ce que tu sais faire maintenant', quete:'Niveau terminé !', mentor:'Bravo, on récapitule'},
+    body:`<ul class="recap"><li><code>print()</code> affiche du texte (entre guillemets) ou le résultat d'un calcul.</li><li>Une variable range une valeur : <code>score = 10</code>. On la réutilise par son nom.</li><li>Python fait la différence entre <code>nom</code> et <code>Nom</code>. Un message d'erreur donne toujours un indice.</li></ul>` }
+];
+
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fresh(){ return {current:0, xp:0, streak:0, st:STEPS.map(s=>({code:s.code||'', done:false, out:null, err:null, mem:null, picked:[], hints:0, tries:0, fb:null}))}; }
+function load(){ try{ const v=JSON.parse(localStorage.getItem('atelier-py-l1')); if(v && v.st && v.st.length===STEPS.length) return v; }catch(_){} return null; }
+let S = load() || fresh();
+let skin = 'pro';
+let pops = [];
+function save(){ try{ localStorage.setItem('atelier-py-l1', JSON.stringify(S)); }catch(_){} }
+
+/* ---------- Python (Skulpt) ---------- */
+function readFile(x){
+  if(Sk.builtinFiles===undefined || Sk.builtinFiles.files[x]===undefined) throw "Fichier introuvable : '"+x+"'";
+  return Sk.builtinFiles.files[x];
+}
+function readMem(mod){
+  const d = mod && mod.$d; if(!d) return [];
+  const rows=[];
+  for(const k of Object.keys(d)){
+    if(k.startsWith('__')) continue;
+    const v=d[k]; if(!v || !v.tp$name) continue;
+    if(['function','module','type','builtin_function_or_method','method'].includes(v.tp$name)) continue;
+    let r; try{ r=Sk.misceval.objectRepr(v); if(typeof r!=='string') r=(r && r.v!==undefined)? r.v : String(r); }catch(_){ r='?'; }
+    rows.push({name:k.replace(/_\$rn\$$/,''), type:v.tp$name, repr:r});
+  }
+  return rows;
+}
+function explain(e){
+  const name = (e && e.tp$name) || (e && e.name) || 'Erreur';
+  let raw=''; try{ raw=e.toString(); }catch(_){ raw=String(e); }
+  let line=null;
+  if(e && e.traceback && e.traceback.length) line=e.traceback[0].lineno;
+  if(!line){ const m=raw.match(/on line (\d+)/); if(m) line=+m[1]; }
+  const L = line ? ` (ligne ${line})` : '';
+  let title, text;
+  switch(name){
+    case 'NameError': { const m=raw.match(/name '([^']+)'/); title=`Python ne connaît pas « ${m?m[1]:'ce nom'} »${L}`; text='Vérifie l’orthographe : pour Python, <code>Nom</code> et <code>nom</code> sont deux noms différents. Et si c’est du texte, il faut des guillemets.'; break; }
+    case 'SyntaxError': case 'TokenError': title=`Python n’arrive pas à lire ton code${L}`; text='Souvent, c’est un guillemet ou une parenthèse oubliés. Chaque <code>(</code> a besoin de sa <code>)</code>, et chaque <code>"</code> de son partenaire.'; break;
+    case 'IndentationError': case 'TabError': title=`Problème d’espaces en début de ligne${L}`; text='Pour l’instant, commence chaque ligne tout à gauche, sans espace devant.'; break;
+    case 'TypeError': title=`Mélange impossible${L}`; text='Tu essaies sans doute de coller du texte et un nombre avec <code>+</code>. Python ne sait pas faire « Bonjour » + 19.'; break;
+    case 'ZeroDivisionError': title=`Division par zéro${L}`; text='Même Python ne sait pas diviser par 0.'; break;
+    case 'TimeoutError': case 'TimeLimitError': title='Ton programme tourne trop longtemps'; text='Il ne s’arrête jamais : vérifie tes boucles.'; break;
+    default: title=`Erreur Python : ${name}${L}`; text='Lis le message original ci-dessous : il indique souvent la ligne en cause.';
+  }
+  return {title:title, text:text, raw:raw};
+}
+function runPy(code){
+  let out='';
+  Sk.configure({ output:t=>{ out+=t; }, read:readFile, __future__:Sk.python3, execLimit:3000, yieldLimit:100, inputfunTakesPrompt:true, inputfun:()=>'' });
+  Sk.execStart = Date.now();
+  return Sk.misceval.asyncToPromise(()=>Sk.importMainWithBody('<stdin>', false, code, true))
+    .then(mod=>({out:out, err:null, mem:readMem(mod)}))
+    .catch(e=>({out:out, err:explain(e), mem:null}));
+}
+
+/* ---------- Rendu ---------- */
+const $ = id => document.getElementById(id);
+const level = () => 1 + Math.floor(S.xp/100);
+const doneCount = () => S.st.filter(s=>s.done).length;
+
+function renderHud(){
+  const n=STEPS.length, d=doneCount();
+  let label, pct;
+  if(skin==='quete'){ label=`${S.xp%100} / 100 XP`; pct=S.xp%100; }
+  else if(skin==='mentor'){ label=`Chapitre 1 · ${d} sur ${n}`; pct=d/n*100; }
+  else { label=`Étape ${Math.min(S.current+1,n)} sur ${n}`; pct=d/n*100; }
+  $('hud').innerHTML = `<span class="lvl">NIV ${level()}</span><div class="prog"><span class="prog-label">${label}</span><div class="bar"><i style="width:${pct}%"></i></div></div><span class="xp">${S.xp} XP</span><span class="streak${S.streak>=2?' on':''}">SÉRIE ×${S.streak}</span>`;
+  for(const p of pops){ const s=document.createElement('span'); s.className='xp-pop'; s.textContent=p; $('hud').appendChild(s); setTimeout(()=>s.remove(),1300); }
+  pops=[];
+}
+function renderCourse(){
+  const names = CHAPS[skin==='quete'?'quete':'pro'];
+  const all = S.st.every(s=>s.done);
+  $('course').innerHTML = `<p class="course-title">${skin==='quete'?'Carte du monde':'Ton parcours'}</p><ol class="chaps">${names.map((t,i)=> i===0
+    ? `<li class="chap current"><span class="num">1</span><span class="ct"><span>${t}</span><small>${all?'Terminé':'En cours'}</small></span></li>`
+    : `<li class="chap locked"><span class="num" aria-label="verrouillé">${skin==='quete'?i+1:LOCK}</span><span class="ct"><span>${t}</span><small>Bientôt</small></span></li>`).join('')}</ol>`;
+}
+function headHTML(){
+  if(skin==='mentor') return `<section class="step"><div class="who">${PYO}</div><div class="bubble"><h2>Salut, moi c'est Pyo.</h2><div class="body"><p>On apprend Python ensemble, par petits morceaux. Je t'explique un truc, tu testes tout de suite, et si tu te trompes, on regarde pourquoi. Pas de gros pavé à lire.</p></div></div></section>`;
+  if(skin==='quete') return `<header class="lesson-head"><p class="kicker">Monde 1 · Niveau 1</p><h1>Le terminal s'éveille</h1><p class="meta">Réussis les 6 missions pour gagner le badge « Premier mot » et passer au niveau 2.</p></header>`;
+  return `<header class="lesson-head"><p class="kicker">Chapitre 1 · Leçon 1</p><h1>Afficher et ranger des valeurs</h1><p class="meta">7 étapes · 15 minutes environ · tu codes dès la première minute</p><ul class="goals"><li>Afficher du texte</li><li>Faire calculer Python</li><li>Utiliser des variables</li><li>Lire une erreur</li></ul></header>`;
+}
+function ideHTML(i){
+  const s=STEPS[i], st=S.st[i];
+  let con;
+  if(st.out===null && !st.err) con=`<pre class="out empty">La console attend. Clique sur Exécuter.</pre>`;
+  else if(st.out) con=`<pre class="out">${esc(st.out)}</pre>`;
+  else con = st.err ? '' : `<pre class="out empty">(rien ne s'affiche)</pre>`;
+  if(st.err) con+=`<div class="err-box" role="alert"><b>${esc(st.err.title)}</b><p>${st.err.text}</p><span class="err-raw">Message original : ${esc(st.err.raw)}</span></div>`;
+  let mem='';
+  if(s.showMem || (st.mem && st.mem.length)){
+    mem = `<div class="memory"><div class="console-label">Mémoire de Python</div>${st.mem && st.mem.length
+      ? `<div class="boxes">${st.mem.map(m=>`<div class="box"><span class="tag">${esc(m.name)}</span><span class="val">${esc(m.repr)}</span><span class="type">${TYPE[m.type]||esc(m.type)}</span></div>`).join('')}</div>`
+      : `<p class="mem-empty">Les boîtes apparaîtront ici après l'exécution.</p>`}</div>`;
+  }
+  const rows = Math.max(3, st.code.split('\n').length + 1);
+  return `<div class="ide"><div class="ide-bar"><span class="file"><i></i>${s.file}</span><span class="kbd">Ctrl + Entrée</span><button type="button" class="run" data-act="run" data-i="${i}">▶ Exécuter</button></div><textarea class="code" id="code-${i}" data-i="${i}" rows="${rows}" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Code Python de l'étape ${i+1}"${s.kind!=='explain'?' data-nopaste="1"':''}>${esc(st.code)}</textarea><div class="console"><div class="console-label">Console</div>${con}</div>${mem}</div>`;
+}
+function stepHTML(i){
+  const s=STEPS[i], st=S.st[i];
+  let h = skin==='mentor' ? '' : `<p class="kicker">${skin==='quete'?'Mission':'Étape'} ${i+1} · ${KIND[s.kind][skin]}${st.done && s.kind!=='recap' ? ' <span class="done-tag">✓</span>' : ''}</p>`;
+  h += `<h2>${s.title[skin]}</h2><div class="body">${s.body}</div>`;
+  if(s.snippet) h += `<pre class="snippet">${esc(s.snippet)}</pre>`;
+  if(s.kind==='quiz') h += `<div class="opts" role="group" aria-label="Réponses">${s.options.map((o,k)=>{
+      const p=st.picked.includes(k);
+      return `<button type="button" class="opt${p?(o.right?' right':' wrong'):''}" data-act="opt" data-i="${i}" data-k="${k}"${st.done||p?' disabled':''}>${esc(o.label)}</button>`;
+    }).join('')}</div>`;
+  if(s.code!==undefined) h += ideHTML(i);
+  if(st.fb) h += `<div class="fb ${st.fb.ok?'ok':'ko'}" role="status">${st.fb.ok?`<b>${OKW[skin]}</b>`:''}${st.fb.text}</div>`;
+  if(s.hints && !st.done) for(let k=0;k<st.hints;k++) h += `<div class="hint"><b>Indice ${k+1} :</b>${s.hints[k]}</div>`;
+  if(s.kind==='recap') h += `<div class="vscode"><p class="vs-title">Et dans VS Code ?</p><p>Crée un fichier <code>bonjour.py</code>, tape le même code, puis clique sur le triangle ▶ en haut à droite. Le résultat apparaît dans le terminal, en bas, comme dans la console ici.</p></div><div class="badge">${BADGE}<div><p class="badge-name">Badge « Premier mot »</p><p class="badge-sub">${S.xp} XP gagnés${skin==='quete'?` · niveau ${level()} atteint`:''} · prochaine leçon : les conditions</p></div></div>`;
+  let a='';
+  if(s.hints && !st.done && st.hints < s.hints.length) a += `<button type="button" class="btn ghost" data-act="hint" data-i="${i}">Un indice (${st.hints+1}/${s.hints.length})</button>`;
+  if(s.kind==='recap') a += `<button type="button" class="btn ghost" data-act="reset">Recommencer la leçon</button>`;
+  else if(i===S.current){
+    if(st.done) a += `<button type="button" class="btn" data-act="next" data-i="${i}">${NEXT[skin]}</button>`;
+    else if(s.kind==='explain') a += `<span class="wait">Exécute le code pour continuer.</span>`;
+  }
+  if(a) h += `<div class="actions">${a}</div>`;
+  const reply = st.done && s.reply ? `<div class="reply"><p>${esc(s.reply(st))}</p></div>` : '';
+  return `<section class="step${i===S.current?' is-current':''}" id="step-${i}" data-kind="${s.kind}"><div class="who">${PYO}</div><div class="bubble">${h}</div>${reply}</section>`;
+}
+function renderLesson(){
+  let h = headHTML();
+  for(let i=0;i<=S.current;i++) h += stepHTML(i);
+  $('lesson').innerHTML = h;
+}
+function updateStep(i){
+  const el=$('step-'+i); if(!el) return;
+  const t=document.createElement('div'); t.innerHTML=stepHTML(i);
+  el.replaceWith(t.firstElementChild);
+}
+function render(){
+  document.documentElement.dataset.skin = skin;
+  document.querySelectorAll('[data-pick]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.pick===skin)));
+  renderHud(); renderCourse(); renderLesson();
+}
+
+/* ---------- Actions ---------- */
+function gain(x, first){
+  const before=level();
+  S.xp+=x; S.streak = first ? S.streak+1 : 0;
+  pops.push(`+${x} XP`);
+  if(level()>before) pops.push(`Niveau ${level()} !`);
+}
+function toast(msg){
+  document.querySelectorAll('.toast').forEach(t=>t.remove());
+  const t=document.createElement('div'); t.className='toast'; t.setAttribute('role','status'); t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),2600);
+}
+async function run(i){
+  const s=STEPS[i], st=S.st[i];
+  const btn=document.querySelector(`#step-${i} .run`);
+  if(btn){ btn.disabled=true; btn.textContent='…'; }
+  const r = await runPy(st.code);
+  st.out=r.out; st.err=r.err; st.mem=r.mem;
+  if(s.kind==='explain' && !st.done){ st.done=true; gain(s.xp,true); }
+  if((s.kind==='code'||s.kind==='bug') && !st.done){
+    const v = s.check(r, st.code);
+    const firstLook = s.kind==='bug' && st.code.trim()===s.code;
+    if(!firstLook) st.tries++;
+    if(v===true){ st.done=true; st.fb={ok:true, text:s.ok}; gain(st.tries===1 ? s.xp : Math.round(s.xp*.6), st.tries===1); }
+    else { st.fb={ok:false, text:v}; if(!firstLook) S.streak=0; }
+  }
+  save(); updateStep(i); renderHud();
+  const ta=$('code-'+i); if(ta && !st.done) ta.focus();
+}
+function pick(i,k){
+  const s=STEPS[i], st=S.st[i], o=s.options[k];
+  if(st.done || st.picked.includes(k)) return;
+  st.picked.push(k);
+  if(o.right){ st.done=true; st.fb={ok:true, text:s.ok}; const first=st.picked.length===1; gain(first?10:5, first); }
+  else { st.fb={ok:false, text:o.why}; S.streak=0; }
+  save(); updateStep(i); renderHud();
+}
+function next(i){
+  S.current=i+1;
+  if(STEPS[S.current].kind==='recap') S.st[S.current].done=true;
+  save(); renderHud(); renderCourse(); renderLesson();
+  const el=$('step-'+S.current);
+  if(el){
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({behavior:reduce?'auto':'smooth', block:'start'});
+    const ta=el.querySelector('textarea'); if(ta) setTimeout(()=>ta.focus({preventScroll:true}), 350);
+  }
+}
+
+const lesson=$('lesson');
+lesson.addEventListener('click', e=>{
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  const i=+b.dataset.i;
+  switch(b.dataset.act){
+    case 'run': run(i); break;
+    case 'opt': pick(i, +b.dataset.k); break;
+    case 'hint': S.st[i].hints++; save(); updateStep(i); break;
+    case 'next': next(i); break;
+    case 'reset': S=fresh(); save(); render(); window.scrollTo(0,0); break;
+  }
+});
+lesson.addEventListener('input', e=>{
+  const t=e.target; if(!t.matches('textarea.code')) return;
+  S.st[+t.dataset.i].code=t.value;
+  t.rows=Math.max(3, t.value.split('\n').length+1);
+  save();
+});
+lesson.addEventListener('keydown', e=>{
+  const t=e.target; if(!t.matches('textarea.code')) return;
+  if(e.key==='Enter' && (e.ctrlKey||e.metaKey)){ e.preventDefault(); run(+t.dataset.i); }
+  else if(e.key==='Tab' && !e.shiftKey){ e.preventDefault(); t.setRangeText('    ', t.selectionStart, t.selectionEnd, 'end'); t.dispatchEvent(new Event('input',{bubbles:true})); }
+});
+lesson.addEventListener('paste', e=>{
+  if(e.target.matches('textarea[data-nopaste]')){ e.preventDefault(); toast('Dans les exercices, on tape soi-même : c’est comme ça que ça rentre.'); }
+});
+lesson.addEventListener('drop', e=>{ if(e.target.matches('textarea[data-nopaste]')) e.preventDefault(); });
+
+document.querySelectorAll('[data-pick]').forEach(b=>b.addEventListener('click',()=>{
+  skin=b.dataset.pick;
+  try{ localStorage.setItem('atelier-py-skin', skin); }catch(_){}
+  try{ history.replaceState(null,'','#'+skin); }catch(_){}
+  render();
+}));
+
+(function init(){
+  const h=(location.hash||'').slice(1);
+  let saved=null; try{ saved=localStorage.getItem('atelier-py-skin'); }catch(_){}
+  skin = ['pro','quete','mentor'].includes(h) ? h : (['pro','quete','mentor'].includes(saved) ? saved : 'pro');
+  render();
+})();
+</script>

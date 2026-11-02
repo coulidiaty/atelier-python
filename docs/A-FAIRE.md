@@ -27,7 +27,12 @@ Les agents relisent ce fichier au début de chaque session, et rappellent au pro
 - [ ] **Page de confidentialité :** préciser que le nombre d'inscrits de la classe est visible par tout visiteur (sans aucun pseudo), et que le compteur « en ligne » utilise un identifiant d'appareil tiré au hasard.
 - [ ] **Ancien compte « HDK » de L2-INFO :** il est inutilisable (compte anonyme déconnecté). À supprimer si le propriétaire le confirme.
 - [ ] **Vérifier sur un vrai iPhone :** l'export des fiches en PDF depuis l'appli installée sur l'écran d'accueil (mode plein écran). Le service worker, lui, a été testé dans un vrai Chrome (enregistrement, hors ligne, nettoyage du cache).
-- [ ] **Page « responsable de classe » :** les inscrits, leur progression, et un bouton pour supprimer un pseudo déplacé.
+- [ ] **Voir les données du site.** Trois options, de la moins chère à la plus complète (en tokens comme en travail) :
+  1. *Requête toute prête* à enregistrer dans Supabase (SQL Editor → Save) : le tableau des élèves (pseudo, XP, leçons, où chacun s'est arrêté, dernière visite, Google ou pas, statut actif / à relancer / jamais commencé). Aucune modification du site.
+  2. *Tableau de bord minimal* `admin.html`, réservé au compte du propriétaire (vérifié par une fonction de la base) : l'entonnoir (inscrits → ont commencé → 1 leçon → 3 leçons) et le tableau des élèves.
+  3. *Tableau de bord complet* : en plus, en direct (personnes en ligne), activité jour par jour, étapes où les élèves abandonnent, compteur de visiteurs sans compte (identifiant d'appareil tiré au hasard) avec historique au-delà des 24 h des journaux, relevé automatique des erreurs JavaScript chez les élèves, et un bouton pour supprimer un pseudo déplacé. Mettre à jour la page de confidentialité.
+- [ ] **Relancer les élèves bloqués au début** (constat du 2026-11-02 : 4 inscrits arrêtés pendant leur première leçon, 2 jamais commencé) : fil d'activité de la classe, objectif de classe de la semaine, bouton « Partager le classement » pour le groupe WhatsApp.
+- [ ] **Encourager à relier son compte à Google** : 10 inscrits sur 12 ne le sont pas et perdraient leur progression en changeant de téléphone.
 
 ## Idées (long terme)
 

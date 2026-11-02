@@ -440,3 +440,7 @@ textarea.code{display:block;width:100%;border:0;resize:vertical;background:trans
   #print-zone code{font-family:var(--f-code);background:#EEEEEE;color:#111111;padding:0 3pt;border-radius:3pt}
   @page{margin:16mm}
 }
+/* Bandeau « nouvelle version disponible » */
+.update-bar{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:12px;width:max-content;max-width:calc(100% - 32px);padding:10px 10px 10px 16px;border-radius:16px;background:var(--surface);color:var(--fg);font-weight:700;font-size:.92rem;box-shadow:0 6px 24px rgb(0 0 0 / .18);border:1.5px solid var(--accent)}
+.update-bar .btn{flex:none}
+@media print{ .update-bar{display:none!important} }

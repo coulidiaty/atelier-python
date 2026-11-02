@@ -119,6 +119,17 @@ Décrite dans [`supabase/schema.sql`](../supabase/schema.sql). Projet `atelier-p
 2. Pendant le jeu : `push()` 4 s après une sauvegarde, et les gains d'XP sont envoyés par paquets toutes les 8 s (`flushXp`).
 3. Quand la page passe en arrière-plan ou que le réseau revient : envoi immédiat.
 
+### Cache et mises à jour
+Trois couches peuvent servir une ancienne version :
+1. **GitHub Pages** envoie `Cache-Control: max-age=600` : un navigateur peut garder un fichier 10 minutes.
+2. **Le service worker** (`sw.js`, cache `atelier-v2`) :
+   - les pages : réseau d'abord, en revalidant toujours auprès du serveur (`cache:'no-cache'`), copie locale hors ligne ; une seule copie par page, sans les paramètres de l'adresse ;
+   - les autres fichiers : copie locale tout de suite, mise à jour en arrière-plan. Un fichier versionné (`?v=`) ne garde que sa dernière version ;
+   - les requêtes `no-store` vont toujours au réseau.
+3. **L'appli restée ouverte** (surtout installée sur iPhone) : `watchUpdates()` dans `app.js` relit `index.html` sans cache 10 s après le chargement, à chaque retour sur l'appli (au plus tous les quarts d'heure) et toutes les 30 minutes. Si ses `?v=` diffèrent, un bandeau propose « Mettre à jour ».
+
+D'où la règle : **toujours augmenter `?v=`** d'un fichier modifié. Les fichiers de `vendor/` n'ont pas de `?v=` : si on les remplace, il faut leur en ajouter un. Changer le nom `CACHE` dans `sw.js` vide le cache de tous les appareils.
+
 ### Personnes en ligne
 Supabase Realtime **Presence**, sur le canal `en-ligne`, sans table. Chaque appareil s'y annonce avec un identifiant tiré au hasard (`atelier-appareil` dans `localStorage`), seulement quand la page est visible. Il se retire quand elle passe en arrière-plan. Aucun pseudo n'est partagé, et les visiteurs sans compte comptent aussi. Le compteur est mis à jour directement dans le DOM (`showOnline`), sans refaire le rendu de la page.
 

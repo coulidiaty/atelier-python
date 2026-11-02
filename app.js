@@ -872,6 +872,7 @@ function bind(){
       if (k === 'track-bases' || k === 'track-poo') setTrack(k.slice(6));
       if (k === 'fiches-done' || k === 'fiches-all') { fichesAll = k === 'fiches-all'; renderView(); }
       if (k === 'fiches-pdf') fichesPDF();
+      if (k === 'reload') { save(); location.reload(); }
       if (k === 'fiches-copy') fichesCopy();
       if (k === 'install' && installPrompt) { installPrompt.prompt(); installPrompt.userChoice.finally(() => { installPrompt = null; renderView(); }); }
       if (k === 'reset-ask') $('reset-zone').innerHTML = `<span class="wait">Sûr ? Toute ta progression sur cet appareil sera effacée.</span><button type="button" class="btn danger" data-act2="reset">Oui, tout effacer</button><button type="button" class="btn ghost" data-act2="reset-no">Annuler</button>`;
@@ -953,6 +954,33 @@ function start(){
   renderAll();
   emit('start');
   if ('serviceWorker' in navigator && location.protocol !== 'file:' && !/\/dev\//.test(location.pathname)) navigator.serviceWorker.register('sw.js').catch(() => {});
+  watchUpdates();
+}
+
+/* Mise à jour : une appli restée ouverte (surtout installée sur iPhone, qui la reprend en mémoire sans recharger)
+   peut garder l'ancienne version pendant des jours. On relit index.html sans cache, et si ses ?v= ont changé,
+   on propose de recharger. La progression est déjà enregistrée : recharger ne perd rien. */
+const versionsOf = doc => [...doc.querySelectorAll('script[src*="?v="], link[href*="?v="]')].map(e => e.getAttribute('src') || e.getAttribute('href')).sort().join('|');
+let lastCheck = 0, updateShown = false;
+async function checkUpdate(){
+  if (updateShown || location.protocol === 'file:' || Date.now() - lastCheck < 15 * 60000) return;
+  lastCheck = Date.now();
+  try {
+    const res = await fetch(location.pathname, { cache:'no-store' }); if (!res.ok) return;
+    const theirs = versionsOf(new DOMParser().parseFromString(await res.text(), 'text/html'));
+    if (theirs && theirs !== versionsOf(document)) showUpdate();
+  } catch(_) {}
+}
+function showUpdate(){
+  updateShown = true;
+  const b = document.createElement('div'); b.className = 'update-bar'; b.setAttribute('role', 'status');
+  b.innerHTML = `<span>Une nouvelle version de l'Atelier est disponible.</span><button type="button" class="btn" data-act2="reload">Mettre à jour</button>`;
+  document.body.appendChild(b);
+}
+function watchUpdates(){
+  setTimeout(checkUpdate, 10000);
+  setInterval(() => { if (document.visibilityState === 'visible') checkUpdate(); }, 30 * 60000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkUpdate(); });
 }
 
 window.Atelier = {

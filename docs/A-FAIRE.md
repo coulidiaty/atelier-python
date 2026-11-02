@@ -26,7 +26,7 @@ Les agents relisent ce fichier au début de chaque session, et rappellent au pro
 
 - [ ] **Page de confidentialité :** préciser que le nombre d'inscrits de la classe est visible par tout visiteur (sans aucun pseudo), et que le compteur « en ligne » utilise un identifiant d'appareil tiré au hasard.
 - [ ] **Ancien compte « HDK » de L2-INFO :** il est inutilisable (compte anonyme déconnecté). À supprimer si le propriétaire le confirme.
-- [ ] **Vérifier sur un vrai iPhone :** l'export des fiches en PDF depuis l'appli installée sur l'écran d'accueil (mode plein écran), et l'enregistrement du service worker. Le navigateur intégré à Claude ne permet pas de les tester.
+- [ ] **Vérifier sur un vrai iPhone :** l'export des fiches en PDF depuis l'appli installée sur l'écran d'accueil (mode plein écran). Le service worker, lui, a été testé dans un vrai Chrome (enregistrement, hors ligne, nettoyage du cache).
 - [ ] **Page « responsable de classe » :** les inscrits, leur progression, et un bouton pour supprimer un pseudo déplacé.
 
 ## Idées (long terme)
@@ -43,3 +43,4 @@ Voir [VISION.md](VISION.md) : révisions espacées, plusieurs cours, plusieurs c
 | 2026-11-02 | Compteur des personnes en ligne sur l'accueil |
 | 2026-11-02 | Sauter les bases pour aller directement à la POO (choix sur l'accueil et dans Paramètres) |
 | 2026-11-02 | Fiches : terminées ou toutes, export en PDF et copie du texte |
+| 2026-11-02 | Cache : pages toujours revalidées, cache hors ligne nettoyé, bandeau « nouvelle version » |

@@ -172,6 +172,28 @@ async function loadMembers(){
   if (A.view.type === 'home') rerender();
 }
 loadCount();
+
+/* ---------- En ligne maintenant (Supabase Realtime Presence) ---------- */
+// Chaque appareil qui a le site ouvert et visible compte pour une personne, avec ou sans compte.
+// Seul un identifiant tiré au hasard est partagé : aucun pseudo, aucune donnée de l'élève.
+const deviceId = (() => {
+  try { let id = localStorage.getItem('atelier-appareil'); if (!id) { id = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('atelier-appareil', id); } return id; }
+  catch(_) { return Math.random().toString(36).slice(2); }
+})();
+C.online = 0;
+const onlineText = () => C.online <= 1 ? 'En ligne en ce moment : toi' : `${C.online} personnes en ligne en ce moment, toi compris`;
+const showOnline = () => {
+  const el = document.getElementById('online'); if (!el) return;
+  el.classList.toggle('wait', !C.online);
+  el.querySelector('.online-n').textContent = onlineText();
+};
+const presence = sb.channel('en-ligne', { config:{ presence:{ key:deviceId } } });
+presence.on('presence', { event:'sync' }, () => { C.online = Object.keys(presence.presenceState()).length; showOnline(); });
+const beOnline = () => { if (document.visibilityState === 'visible') presence.track({ depuis:Date.now() }); else presence.untrack(); };
+presence.subscribe(status => { if (status === 'SUBSCRIBED') beOnline(); });
+document.addEventListener('visibilitychange', beOnline);
+A.on('render', showOnline);
+
 async function loadBoard(){
   if (!C.profile || !C.profile.classe) return;
   C.boardErr = null;
@@ -227,9 +249,10 @@ const others = n => n === 1 ? '1 camarade est déjà inscrit' : `${n} camarades 
 // « Plus tard » ferme la proposition sur cet appareil ; on peut toujours rejoindre depuis Paramètres.
 const LATER = 'atelier-classe-plus-tard';
 const saidLater = () => { try { return !!localStorage.getItem(LATER); } catch(_) { return false; } };
+const onlineHTML = () => `<section class="step"><div class="who"></div><p class="online${C.online ? '' : ' wait'}" id="online" role="status"><span class="dot" aria-hidden="true"></span><span class="online-n">${onlineText()}</span></p></section>`;
 A.ext.homeTop = () => {
-  if (!C.ready || C.profile || saidLater()) return '';
-  return `<section class="step"><div class="who"></div><div class="bubble banner" id="rejoindre"><p class="kicker">Ta classe</p><h2>Tu veux rejoindre la classe ${CLASSE} ?</h2>
+  if (!C.ready || C.profile || saidLater()) return onlineHTML();
+  return `${onlineHTML()}<section class="step"><div class="who"></div><div class="bubble banner" id="rejoindre"><p class="kicker">Ta classe</p><h2>Tu veux rejoindre la classe ${CLASSE} ?</h2>
     <p>Computer Science, promo 2028.${C.count ? ` <b>${others(C.count)}</b>.` : ''} Dans la classe, tu vois tes camarades et le classement de la semaine, et ta progression est sauvegardée en ligne. C'est facultatif : le site marche aussi sans.</p>
     ${msgHTML()}${joinForm()}
     <div class="actions"><button type="button" class="btn ghost" data-cloud="later">Plus tard</button></div>

@@ -73,7 +73,7 @@ Un fichier par chapitre (`bases-1.js` … `poo-10.js`), qui appelle `Atelier.cha
 ### Points d'extension d'affichage (`Atelier.ext`)
 | Nom | Où | Fourni par |
 |---|---|---|
-| `homeTop()` | tout en haut de l'accueil | `cloud.js` : proposer de rejoindre CS28 |
+| `homeTop()` | tout en haut de l'accueil | `cloud.js` : le compteur « en ligne », et la proposition de rejoindre CS28 |
 | `homeBanner()` | après le premier bloc de l'accueil | `cloud.js` : les membres de la classe |
 | `accountHTML()` | Paramètres → Compte et classe | `cloud.js` |
 | `boardHTML()` | Progrès → Classement de la classe | `cloud.js` |
@@ -117,6 +117,9 @@ Décrite dans [`supabase/schema.sql`](../supabase/schema.sql). Projet `atelier-p
 1. À la connexion : `setOwner`, puis lecture de `progress`, `mergeState` (on garde le maximum de chaque côté), puis réécriture.
 2. Pendant le jeu : `push()` 4 s après une sauvegarde, et les gains d'XP sont envoyés par paquets toutes les 8 s (`flushXp`).
 3. Quand la page passe en arrière-plan ou que le réseau revient : envoi immédiat.
+
+### Personnes en ligne
+Supabase Realtime **Presence**, sur le canal `en-ligne`, sans table. Chaque appareil s'y annonce avec un identifiant tiré au hasard (`atelier-appareil` dans `localStorage`), seulement quand la page est visible. Il se retire quand elle passe en arrière-plan. Aucun pseudo n'est partagé, et les visiteurs sans compte comptent aussi. Le compteur est mis à jour directement dans le DOM (`showOnline`), sans refaire le rendu de la page.
 
 ## Pièges connus (déjà corrigés, ne pas les réintroduire)
 
@@ -164,3 +167,4 @@ Principes : un cours = un dossier de contenu + un moteur d'exécution déclaré 
 | 2026-11 | Une seule classe, CS28, que l'on propose sans obliger à la rejoindre | Le site sert d'abord à une classe ; rejoindre doit rester un choix |
 | 2026-11 | Flux PKCE pour Google | Le retour arrive dans `?code=…` et laisse le `#…` libre pour la navigation |
 | 2026-11 | Réveil de la base tous les 3 jours par GitHub Actions | Un projet gratuit se met en pause après 7 jours sans activité |
+| 2026-11 | Compteur « en ligne » avec Realtime Presence, et non une table | Temps réel, aucune écriture en base, aucune donnée personnelle |

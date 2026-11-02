@@ -24,7 +24,7 @@ Les agents relisent ce fichier au début de chaque session, et rappellent au pro
 
 ## Plus tard
 
-- [ ] **Page de confidentialité :** préciser que le nombre d'inscrits de la classe est visible par tout visiteur (sans aucun pseudo).
+- [ ] **Page de confidentialité :** préciser que le nombre d'inscrits de la classe est visible par tout visiteur (sans aucun pseudo), et que le compteur « en ligne » utilise un identifiant d'appareil tiré au hasard.
 - [ ] **Ancien compte « HDK » de L2-INFO :** il est inutilisable (compte anonyme déconnecté). À supprimer si le propriétaire le confirme.
 - [ ] **Page « responsable de classe » :** les inscrits, leur progression, et un bouton pour supprimer un pseudo déplacé.
 
@@ -39,3 +39,4 @@ Voir [VISION.md](VISION.md) : révisions espacées, plusieurs cours, plusieurs c
 | 2026-11-02 | Connexion Google en production, classe unique CS28, proposition de la rejoindre sur l'accueil |
 | 2026-11-02 | Réveil automatique de la base Supabase tous les 3 jours |
 | 2026-11-02 | Documentation : AGENTS.md, ARCHITECTURE.md, EXPLOITATION.md, VISION.md |
+| 2026-11-02 | Compteur des personnes en ligne sur l'accueil |

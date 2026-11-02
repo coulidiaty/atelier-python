@@ -8,7 +8,8 @@
 const A = window.Atelier, { esc } = A.h;
 const cfg = window.ATELIER_CONFIG || {};
 const params = new URLSearchParams(location.search);
-const CODE_RE = /^[A-Z0-9-]{3,20}$/;
+const DEFAULT_CLASS = 'CS28'; // la classe proposée par défaut : Computer Science, promo 2028
+const CODE_RE =/^[A-Z0-9-]{3,20}$/;
 const cleanCode = s => (s || '').toUpperCase().trim().replace(/\s+/g, '-').replace(/[^A-Z0-9-]/g, '');
 
 // Lien d'invitation : ?classe=L2-INFO-B
@@ -87,7 +88,7 @@ A.on('reset', () => { if (C.user) push(); });
 async function join(pseudo, code){
   pseudo = (pseudo || '').trim().slice(0, 24); code = cleanCode(code);
   if (pseudo.length < 2) return say('Choisis un pseudo d’au moins 2 caractères.');
-  if (!CODE_RE.test(code)) return say('Le code de classe fait de 3 à 20 caractères : lettres, chiffres et tirets (par exemple L2-INFO-B).');
+  if (!CODE_RE.test(code)) return say('Le code de classe fait de 3 à 20 caractères : lettres, chiffres et tirets (par exemple CS28).');
   C.busy = true; rerender();
   try {
     if (!C.user) {
@@ -138,7 +139,7 @@ async function loadBoard(){
 const msgHTML = () => C.msg ? `<p class="fb ${C.msg.ok ? 'ok' : 'ko'}">${C.msg.text}</p>` : '';
 const joinForm = (p = {}) => `<form class="cloud-form" data-cloud-form="join">
     <label class="field"><span>Ton pseudo</span><input name="pseudo" maxlength="24" autocomplete="nickname" value="${esc(p.pseudo || '')}" placeholder="Par exemple PythonNinja" required><small>C'est lui qui apparaît dans le classement. Jamais ton e-mail.</small></label>
-    <label class="field"><span>Code de ta classe</span><input name="classe" maxlength="20" value="${esc(p.classe || pendingInvite())}" placeholder="Par exemple L2-INFO-B" required autocapitalize="characters"><small>Le même code pour toute la classe. Ton délégué ou ton prof peut le choisir.</small></label>
+    <label class="field"><span>Code de ta classe</span><input name="classe" maxlength="20" value="${esc(p.classe || pendingInvite() || DEFAULT_CLASS)}" placeholder="${DEFAULT_CLASS}" required autocapitalize="characters"><small>Notre classe : <b>${DEFAULT_CLASS}</b> (Computer Science, promo 2028). Laisse ce code, il suffit de choisir ton pseudo.</small></label>
     <div class="actions"><button class="btn" type="submit"${C.busy ? ' disabled' : ''}>${p.pseudo ? 'Enregistrer' : 'Rejoindre ma classe'}</button></div></form>`;
 const linkBlock = title => `<h3 class="memo-t">${title}</h3>
     ${C.google ? `<div class="actions"><button type="button" class="btn ghost" data-cloud="google">Continuer avec Google</button></div>` : ''}
@@ -153,7 +154,7 @@ const logoutHTML = () => !C.confirmOut
     <div class="actions"><button type="button" class="btn ghost" data-cloud="logout-no">Annuler</button><button type="button" class="btn danger" data-cloud="logout">Oui, me déconnecter</button></div>`;
 A.ext.accountHTML = () => {
   if (!C.ready) return `<p class="small">Connexion…</p>`;
-  if (!C.user) return `${msgHTML()}<p>Rejoins ta classe pour sauvegarder ta progression en ligne et apparaître dans le classement de la semaine. Ça prend 10 secondes, sans e-mail.</p>${joinForm()}${linkBlock('Tu as déjà un compte sur un autre appareil ?')}`;
+  if (!C.user) return `${msgHTML()}<p>Rejoins la classe CS28 pour sauvegarder ta progression en ligne et apparaître dans le classement de la semaine. Ça prend 10 secondes, sans e-mail.</p>${joinForm()}${linkBlock('Tu as déjà un compte sur un autre appareil ?')}`;
   if (!C.profile) return `${msgHTML()}<p>Tu es connecté. Choisis ton pseudo et ta classe pour apparaître dans le classement.</p>${joinForm()}${logoutHTML()}`;
   const anon = isAnon();
   return `${msgHTML()}<p class="ok-line"><span>Connecté : <b>${esc(C.profile.pseudo)}</b>, classe <b>${esc(C.profile.classe)}</b>. Ta progression est sauvegardée en ligne.</span></p>
@@ -179,7 +180,7 @@ A.ext.homeBanner = () => {
   if (!C.ready || C.profile) return '';
   const inv = pendingInvite();
   if (inv) return `<section class="step"><div class="who"></div><div class="bubble banner"><h2>Tu es invité dans la classe ${esc(inv)}</h2><p>Rejoins-la pour apparaître dans le classement de la semaine.</p><div class="actions"><button type="button" class="btn" data-go="reglages">Rejoindre la classe</button></div></div></section>`;
-  if (Object.values(A.state.done).some(Boolean)) return `<section class="step"><div class="who"></div><div class="bubble banner"><h2>Sauvegarde ta progression</h2><p>Rejoins ta classe pour retrouver ta progression partout et entrer dans le classement.</p><div class="actions"><button type="button" class="btn ghost" data-go="reglages">Rejoindre ma classe</button></div></div></section>`;
+  if (Object.values(A.state.done).some(Boolean)) return `<section class="step"><div class="who"></div><div class="bubble banner"><h2>Sauvegarde ta progression</h2><p>Rejoins ta classe pour retrouver ta progression partout et entrer dans le classement.</p><div class="actions"><button type="button" class="btn ghost" data-go="reglages">Rejoindre la classe CS28</button></div></div></section>`;
   return '';
 };
 

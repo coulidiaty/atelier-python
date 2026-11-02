@@ -1,22 +1,15 @@
 /* Atelier Python : comptes, synchronisation de la progression et classement de la classe (Supabase).
    Sans configuration (config.js vide), rien n'est envoyé : la progression reste sur l'appareil.
    Connexion :
-   - « Rejoindre ma classe » : un pseudo + un code de classe, sans e-mail (compte anonyme Supabase), en un clic.
+   - « Rejoindre ma classe » : un pseudo, sans e-mail (compte anonyme Supabase), en un clic. Tout le monde est dans la classe CS28.
    - Pour retrouver son compte sur un autre appareil : on le relie à Google ou à un e-mail.
    La base de données est décrite dans supabase/schema.sql. */
 (() => {
 const A = window.Atelier, { esc } = A.h;
 const cfg = window.ATELIER_CONFIG || {};
 const params = new URLSearchParams(location.search);
-const DEFAULT_CLASS = 'CS28'; // la classe proposée par défaut : Computer Science, promo 2028
-const CODE_RE =/^[A-Z0-9-]{3,20}$/;
-const cleanCode = s => (s || '').toUpperCase().trim().replace(/\s+/g, '-').replace(/[^A-Z0-9-]/g, '');
-
-// Lien d'invitation : ?classe=L2-INFO-B
-const invite = cleanCode(params.get('classe'));
-if (invite && CODE_RE.test(invite)) { try { localStorage.setItem('atelier-invite', invite); } catch(_) {} }
-const pendingInvite = () => { try { return localStorage.getItem('atelier-invite') || ''; } catch(_) { return ''; } };
-const inviteLink = code => location.origin + location.pathname.replace(/index\.html$/, '') + '?classe=' + encodeURIComponent(code);
+const CLASSE = 'CS28'; // la seule classe du site : Computer Science, promo 2028
+const siteLink = () => location.origin + location.pathname.replace(/index\.html$/, '');
 
 if (!cfg.supabaseUrl || !cfg.supabaseKey || !window.supabase) {
   A.ext.accountHTML = () => `<p>Les comptes et le classement ne sont pas encore activés sur ce site. Ta progression est enregistrée sur cet appareil, et rien n'est perdu : elle sera reprise quand les comptes arriveront.</p>`;
@@ -63,8 +56,12 @@ async function onSession(session){
     // un résultat vide ne doit pas effacer le profil que join() vient de poser.
     const { data } = await sb.from('profiles').select('pseudo, classe').eq('id', C.user.id).maybeSingle();
     if (data) C.profile = data;
+    // Un ancien compte d'une autre classe rejoint CS28 automatiquement.
+    if (C.profile && C.profile.classe !== CLASSE) {
+      const { error } = await sb.from('profiles').update({ classe:CLASSE, updated_at:new Date().toISOString() }).eq('id', C.user.id);
+      if (!error) C.profile = { ...C.profile, classe:CLASSE };
+    }
     await pull();
-    try { if (C.profile && C.profile.classe === pendingInvite()) localStorage.removeItem('atelier-invite'); } catch(_) {}
   }
   C.ready = true; C.board = null;
   rerender();
@@ -117,10 +114,10 @@ window.addEventListener('online', () => { flushXp(); push(); });
 A.on('reset', () => { if (C.user) push(); });
 
 /* ---------- Actions ---------- */
-async function join(pseudo, code){
-  pseudo = (pseudo || '').trim().slice(0, 24); code = cleanCode(code);
+async function join(pseudo){
+  const code = CLASSE;
+  pseudo = (pseudo || '').trim().slice(0, 24);
   if (pseudo.length < 2) return say('Choisis un pseudo d’au moins 2 caractères.');
-  if (!CODE_RE.test(code)) return say('Le code de classe fait de 3 à 20 caractères : lettres, chiffres et tirets (par exemple CS28).');
   C.busy = true; rerender();
   try {
     if (!C.user) {
@@ -131,7 +128,6 @@ async function join(pseudo, code){
     const { error } = await sb.from('profiles').upsert({ id:C.user.id, pseudo, classe:code, updated_at:new Date().toISOString() });
     if (error) throw error;
     C.profile = { pseudo, classe:code };
-    try { localStorage.removeItem('atelier-invite'); } catch(_) {}
     await push(); await flushXp();
     C.board = null; C.msg = { text:`Bienvenue dans la classe ${code}, ${esc(pseudo)} !`, ok:true };
     A.toast(`Tu as rejoint la classe ${esc(code)}`, '🎒');
@@ -172,7 +168,6 @@ async function loadBoard(){
 const msgHTML = () => C.msg ? `<p class="fb ${C.msg.ok ? 'ok' : 'ko'}">${C.msg.text}</p>` : '';
 const joinForm = (p = {}) => `<form class="cloud-form" data-cloud-form="join">
     <label class="field"><span>Ton pseudo</span><input name="pseudo" maxlength="24" autocomplete="nickname" value="${esc(p.pseudo || '')}" placeholder="Par exemple PythonNinja" required><small>C'est lui qui apparaît dans le classement. Jamais ton e-mail.</small></label>
-    <label class="field"><span>Code de ta classe</span><input name="classe" maxlength="20" value="${esc(p.classe || pendingInvite() || DEFAULT_CLASS)}" placeholder="${DEFAULT_CLASS}" required autocapitalize="characters"><small>Notre classe : <b>${DEFAULT_CLASS}</b> (Computer Science, promo 2028). Laisse ce code, il suffit de choisir ton pseudo.</small></label>
     <div class="actions"><button class="btn" type="submit"${C.busy ? ' disabled' : ''}>${p.pseudo ? 'Enregistrer' : 'Rejoindre ma classe'}</button></div></form>`;
 // Google quand il est activé ; le lien par e-mail ne sert que de secours si Google ne l'est pas.
 const linkBlock = (title, intro) => C.google === null ? '' : `<h3 class="memo-t">${title}</h3>${intro ? `<p class="small">${intro}</p>` : ''}
@@ -187,20 +182,20 @@ const logoutHTML = () => !C.confirmOut
     <div class="actions"><button type="button" class="btn ghost" data-cloud="logout-no">Annuler</button><button type="button" class="btn danger" data-cloud="logout">Oui, me déconnecter</button></div>`;
 A.ext.accountHTML = () => {
   if (!C.ready) return `<p class="small">Connexion…</p>`;
-  if (!C.user) return `${msgHTML()}<p>Rejoins la classe CS28 pour sauvegarder ta progression en ligne et apparaître dans le classement de la semaine. Ça prend 10 secondes, sans e-mail.</p>${joinForm()}${linkBlock('Tu as déjà rejoint la classe sur un autre téléphone ?', 'Si tu as relié ton compte à Google, reconnecte-toi ici pour retrouver ta progression.')}`;
-  if (!C.profile) return `${msgHTML()}<p>Tu es connecté. Choisis ton pseudo et ta classe pour apparaître dans le classement.</p>${joinForm()}${logoutHTML()}`;
+  if (!C.user) return `${msgHTML()}<p>Rejoins la classe <b>${CLASSE}</b> (Computer Science, promo 2028) pour sauvegarder ta progression en ligne et apparaître dans le classement de la semaine. Choisis juste ton pseudo : ça prend 10 secondes, sans e-mail.</p>${joinForm()}${linkBlock('Tu as déjà rejoint la classe sur un autre téléphone ?', 'Si tu as relié ton compte à Google, reconnecte-toi ici pour retrouver ta progression.')}`;
+  if (!C.profile) return `${msgHTML()}<p>Tu es connecté. Choisis ton pseudo pour apparaître dans le classement de la classe ${CLASSE}.</p>${joinForm()}${logoutHTML()}`;
   const anon = isAnon();
   return `${msgHTML()}<p class="ok-line"><span>Connecté : <b>${esc(C.profile.pseudo)}</b>, classe <b>${esc(C.profile.classe)}</b>. Ta progression est sauvegardée en ligne.</span></p>
     ${anon ? `<div class="hint"><b>Important :</b> relie ton compte à Google pour le retrouver sur n'importe quel téléphone. Sans ça, si tu changes de téléphone ou effaces ton navigateur, ta progression est perdue.</div>${linkBlock('Sécuriser mon compte')}` : `<p class="small">Compte relié à ${esc(C.user.email || 'Google')}. Tu peux te connecter sur n'importe quel appareil.</p>`}
     <h3 class="memo-t">Inviter des camarades</h3>
-    <p class="small">Envoie ce lien à tes camarades : la classe ${esc(C.profile.classe)} sera déjà remplie pour eux.<br><code>${esc(inviteLink(C.profile.classe))}</code></p>
+    <p class="small">Envoie ce lien à tes camarades de ${CLASSE} : <code>${esc(siteLink())}</code></p>
     <div class="actions"><button type="button" class="btn ghost" data-cloud="copy-invite">Inviter des camarades</button></div>
-    <details class="later"><summary>Modifier mon pseudo ou ma classe</summary>${joinForm(C.profile)}</details>
+    <details class="later"><summary>Modifier mon pseudo</summary>${joinForm(C.profile)}</details>
     ${logoutHTML()}`;
 };
 A.ext.boardHTML = () => {
   if (!C.ready) return `<p class="small">Chargement…</p>`;
-  if (!C.profile) return `<p>Rejoins ta classe pour voir le classement et te mesurer à tes camarades. Le classement de la semaine repart à zéro chaque lundi : tout le monde peut gagner.</p><div class="actions"><button type="button" class="btn" data-go="reglages">Rejoindre ma classe</button></div>`;
+  if (!C.profile) return `<p>Rejoins la classe ${CLASSE} pour voir le classement et te mesurer à tes camarades. Le classement de la semaine repart à zéro chaque lundi : tout le monde peut gagner.</p><div class="actions"><button type="button" class="btn" data-go="reglages">Rejoindre ma classe</button></div>`;
   if (C.board === null && !C.boardErr) { setTimeout(loadBoard, 0); }
   const tabs = `<div class="seg-tabs"><button type="button" data-cloud="mode-semaine" class="${C.boardMode === 'semaine' ? 'on' : ''}">Cette semaine</button><button type="button" data-cloud="mode-total" class="${C.boardMode === 'total' ? 'on' : ''}">Depuis le début</button></div>`;
   let list;
@@ -212,9 +207,7 @@ A.ext.boardHTML = () => {
 };
 A.ext.homeBanner = () => {
   if (!C.ready || C.profile) return '';
-  const inv = pendingInvite();
-  if (inv) return `<section class="step"><div class="who"></div><div class="bubble banner"><h2>Tu es invité dans la classe ${esc(inv)}</h2><p>Rejoins-la pour apparaître dans le classement de la semaine.</p><div class="actions"><button type="button" class="btn" data-go="reglages">Rejoindre la classe</button></div></div></section>`;
-  if (Object.values(A.state.done).some(Boolean)) return `<section class="step"><div class="who"></div><div class="bubble banner"><h2>Sauvegarde ta progression</h2><p>Rejoins ta classe pour retrouver ta progression partout et entrer dans le classement.</p><div class="actions"><button type="button" class="btn ghost" data-go="reglages">Rejoindre la classe CS28</button></div></div></section>`;
+  if (Object.values(A.state.done).some(Boolean)) return `<section class="step"><div class="who"></div><div class="bubble banner"><h2>Sauvegarde ta progression</h2><p>Rejoins la classe ${CLASSE} pour retrouver ta progression partout et entrer dans le classement.</p><div class="actions"><button type="button" class="btn ghost" data-go="reglages">Rejoindre la classe ${CLASSE}</button></div></div></section>`;
   return '';
 };
 
@@ -222,7 +215,7 @@ document.addEventListener('submit', e => {
   const f = e.target.closest('[data-cloud-form]'); if (!f) return;
   e.preventDefault();
   const d = new FormData(f);
-  if (f.dataset.cloudForm === 'join') join(d.get('pseudo'), d.get('classe'));
+  if (f.dataset.cloudForm === 'join') join(d.get('pseudo'));
   if (f.dataset.cloudForm === 'email') withEmail(d.get('email'));
 });
 document.addEventListener('click', async e => {
@@ -234,7 +227,7 @@ document.addEventListener('click', async e => {
   if (k === 'refresh') { C.board = null; loadBoard(); A.renderView(); }
   if (k === 'mode-semaine' || k === 'mode-total') { C.boardMode = k.slice(5); C.board = null; A.renderView(); }
   if (k === 'copy-invite' && C.profile) {
-    const link = inviteLink(C.profile.classe), text = `Rejoins notre classe ${C.profile.classe} sur Atelier Python pour apprendre Python ensemble : ${link}`;
+    const link = siteLink(), text = `Rejoins notre classe ${CLASSE} sur Atelier Python pour apprendre Python ensemble : ${link}`;
     try { if (navigator.share) { await navigator.share({ text, url:link }); return; } } catch(_) { return; }
     try { await navigator.clipboard.writeText(text); A.toast('Lien d’invitation copié.', '📋'); } catch(_) { A.toast('Copie impossible : sélectionne le lien affiché.', '📋'); }
   }

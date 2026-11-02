@@ -64,6 +64,7 @@ Puis ouvre :
 | `docs/ARCHITECTURE.md` | comment le site est construit, et les règles pour qu'il reste propre |
 | `docs/CONTENU.md` | le guide pour écrire ou modifier une leçon |
 | `docs/EXPLOITATION.md` | les services en ligne, leurs réglages et les requêtes utiles |
+| `docs/A-FAIRE.md` | les travaux prévus, et ceux déjà faits |
 | `docs/VISION.md` | où va le projet : vers un « Duolingo du code » |
 | `dev/` | les tests et la démo (pas utilisés par le site) |
 | `vendor/skulpt/` | [Skulpt](https://skulpt.org) (licence MIT), qui exécute Python dans le navigateur |

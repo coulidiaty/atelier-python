@@ -18,10 +18,15 @@ Lis-le en entier avant de toucher au code.
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Les fichiers, l'état, les événements, la base de données, les pièges connus, les règles pour éviter le code spaghetti |
 | [docs/CONTENU.md](docs/CONTENU.md) | Écrire ou modifier une leçon (ton, types d'étapes, tests) |
 | [docs/EXPLOITATION.md](docs/EXPLOITATION.md) | Supabase, Google, réglages en ligne, requêtes utiles (qui est inscrit, qui est actif) |
+| [docs/A-FAIRE.md](docs/A-FAIRE.md) | Les travaux prévus (prochainement, plus tard, idées) et ceux déjà faits |
 | [docs/VISION.md](docs/VISION.md) | Où va le projet : du cours Python au Duolingo du code |
 | [README.md](README.md) | Présentation, mise en ligne, travail en local |
 
 ## Règles
+
+### Les travaux prévus
+- Au début de chaque session, relis [docs/A-FAIRE.md](docs/A-FAIRE.md). Si une tâche « Prochainement » touche au travail demandé, rappelle-la au propriétaire.
+- Quand une tâche est faite, coche-la, puis déplace-la dans « Fait » avec la date, dans le même commit. Une nouvelle idée ou un travail remis à plus tard s'ajoute dans ce fichier.
 
 ### Langue et ton
 - Tout ce que voit l'élève est **en français**, simple et direct, tutoiement. Pas de jargon sans explication.

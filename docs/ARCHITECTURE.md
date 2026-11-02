@@ -77,6 +77,7 @@ Un fichier par chapitre (`bases-1.js` … `poo-10.js`), qui appelle `Atelier.cha
 | `homeBanner()` | après le premier bloc de l'accueil | `cloud.js` : les membres de la classe (toucher son propre pseudo ouvre « Modifier mon pseudo ») |
 | `accountHTML()` | Paramètres → Compte et classe | `cloud.js` |
 | `boardHTML()` | Progrès → Classement de la classe | `cloud.js` |
+| `hasAccount()` | (pas d'affichage) dit au moteur qu'un compte est connecté, pour l'avertissement de « Tout recommencer » | `cloud.js` |
 
 Chaque point d'extension renvoie une chaîne HTML, ou `''` pour ne rien afficher.
 

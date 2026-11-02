@@ -221,6 +221,7 @@ const logoutHTML = () => !C.confirmOut
       ? '<b>Attention :</b> ton compte n’est relié à aucun e-mail. Si tu te déconnectes, tu ne pourras plus le retrouver, ni ta place dans le classement.'
       : `Tu pourras te reconnecter avec ${esc(C.user.email || 'Google')}.`}</div>
     <div class="actions"><button type="button" class="btn ghost" data-cloud="logout-no">Annuler</button><button type="button" class="btn danger" data-cloud="logout">Oui, me déconnecter</button></div>`;
+A.ext.hasAccount = () => !!C.user;
 A.ext.accountHTML = () => {
   if (!C.ready) return `<p class="small">Connexion…</p>`;
   if (!C.user) return `${msgHTML()}<p>Rejoins la classe <b>${CLASSE}</b> (Computer Science, promo 2028) pour sauvegarder ta progression en ligne et apparaître dans le classement de la semaine. Choisis juste ton pseudo : ça prend 10 secondes, sans e-mail.</p>${joinForm()}${linkBlock('Tu as déjà rejoint la classe sur un autre téléphone ?', 'Si tu as relié ton compte à Google, reconnecte-toi ici pour retrouver ta progression.')}`;

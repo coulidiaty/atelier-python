@@ -129,6 +129,8 @@ function available(lid){
   const po = partOrder(partOf(lid)), i = po.indexOf(lid);
   return i === 0 || !!S.done[po[i - 1]];
 }
+// Un compte est connecté (fourni par cloud.js) : sa progression en ligne suit celle de l'appareil.
+const hasAccount = () => !!(Atelier.ext.hasAccount && Atelier.ext.hasAccount());
 const doneCount = () => ORDER.filter(l => S.done[l]).length;
 const nextIn = p => partOrder(p).find(l => !S.done[l]);
 /* Le parcours choisi : 'bases' (les bases puis la POO), 'poo' (directement la POO), ou null (pas encore choisi).
@@ -718,7 +720,7 @@ function reglagesHTML(){
     <label class="pref sw"><input type="checkbox" data-set="sound"${S.settings.sound ? ' checked' : ''}><span><b>Sons</b>Petits sons quand tu réussis</span></label>
     <label class="pref sw"><input type="checkbox" data-set="motion"${S.settings.motion ? ' checked' : ''}><span><b>Animations</b>Confettis et effets</span></label>
   </div></section>
-  <section class="step"><div class="who"></div><div class="bubble"><h2>Mes données</h2><p class="small">Ce qui est enregistré et comment supprimer ton compte : <a href="confidentialite.html">confidentialité et conditions d'utilisation</a>.</p><p class="small">Tout recommencer efface ta progression sur cet appareil.</p><div class="actions" id="reset-zone"><button type="button" class="btn ghost danger" data-act2="reset-ask">Tout recommencer</button></div></div></section>`;
+  <section class="step"><div class="who"></div><div class="bubble"><h2>Mes données</h2><p class="small">Ce qui est enregistré et comment supprimer ton compte : <a href="confidentialite.html">confidentialité et conditions d'utilisation</a>.</p><p class="small">${hasAccount() ? 'Tout recommencer efface ta progression sur cet appareil <b>et sur ton compte</b> : elle sera perdue partout.' : 'Tout recommencer efface ta progression sur cet appareil.'}</p><div class="actions" id="reset-zone"><button type="button" class="btn ghost danger" data-act2="reset-ask">Tout recommencer</button></div></div></section>`;
 }
 function renderView(){
   const v = view.type;
@@ -901,7 +903,7 @@ function bind(){
       if (k === 'reload') { save(); location.reload(); }
       if (k === 'fiches-copy') fichesCopy();
       if (k === 'install' && installPrompt) { installPrompt.prompt(); installPrompt.userChoice.finally(() => { installPrompt = null; renderView(); }); }
-      if (k === 'reset-ask') $('reset-zone').innerHTML = `<span class="wait">Sûr ? Toute ta progression sur cet appareil sera effacée.</span><button type="button" class="btn danger" data-act2="reset">Oui, tout effacer</button><button type="button" class="btn ghost" data-act2="reset-no">Annuler</button>`;
+      if (k === 'reset-ask') $('reset-zone').innerHTML = `<span class="wait">Sûr ? Toute ta progression ${hasAccount() ? 'sera effacée, ici et sur ton compte' : 'sur cet appareil sera effacée'}.</span><button type="button" class="btn danger" data-act2="reset">Oui, tout effacer</button><button type="button" class="btn ghost" data-act2="reset-no">Annuler</button>`;
       if (k === 'reset-no') renderView();
       if (k === 'reset') { const keep = S.settings; S = fresh(); S.settings = keep; save(); emit('reset'); go('accueil'); toast('Progression effacée. Nouveau départ !', '🥚'); }
       return;
@@ -944,6 +946,11 @@ function bind(){
     if (!t.matches('textarea.code')) return;
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); run(view.id, +t.dataset.i); }
     else if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); t.setRangeText('    ', t.selectionStart, t.selectionEnd, 'end'); t.dispatchEvent(new Event('input', { bubbles:true })); }
+    else if (e.key === 'Backspace' && t.selectionStart === t.selectionEnd) {
+      // Effacer dans l'indentation retire 4 espaces d'un coup (pratique au clavier du téléphone).
+      const before = t.value.slice(0, t.selectionStart), line = before.slice(before.lastIndexOf('\n') + 1);
+      if (line.length >= 4 && /^ +$/.test(line)) { e.preventDefault(); const n = line.length % 4 || 4; t.setRangeText('', t.selectionStart - n, t.selectionStart, 'end'); t.dispatchEvent(new Event('input', { bubbles:true })); }
+    }
     else if (e.key === 'Enter' && !e.shiftKey && !e.altKey) {
       const before = t.value.slice(0, t.selectionStart), line = before.slice(before.lastIndexOf('\n') + 1);
       let ind = (line.match(/^ */) || [''])[0];

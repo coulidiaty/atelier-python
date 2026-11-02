@@ -23,9 +23,20 @@ if (!cfg.supabaseUrl || !cfg.supabaseKey || !window.supabase) {
   return;
 }
 
-const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } });
-const C = { user:null, profile:null, ready:false, board:null, boardMode:'semaine', boardErr:null, msg:null, busy:false, queue:0, google:false, confirmOut:false };
-const redirect = () => location.origin + location.pathname + '#reglages';
+// Retour de Google avec une erreur (?error=…) : on la retire de l'adresse AVANT de créer le client,
+// sinon supabase-js efface la session en cours, et un compte de classe sans Google serait perdu.
+const hashParams = new URLSearchParams(location.hash.slice(1));
+const authErr = params.get('error_description') || params.get('error') || hashParams.get('error_description') || hashParams.get('error');
+if (authErr) {
+  const u = new URL(location.href); ['error', 'error_code', 'error_description'].forEach(k => u.searchParams.delete(k));
+  history.replaceState(history.state, '', u.pathname + u.search + (hashParams.has('error') || hashParams.has('error_description') ? '#reglages' : u.hash));
+}
+// Flux PKCE : au retour de Google, le site reçoit ?code=… dans l'adresse, et le #… de la page reste libre pour la navigation.
+const sb =window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce' } });
+// google : null tant qu'on ne sait pas encore si Google est activé dans Supabase.
+const C = { user:null, profile:null, ready:false, board:null, boardMode:'semaine', boardErr:null, msg:null, busy:false, queue:0, google:null, confirmOut:false };
+const redirect = () => location.origin + location.pathname;
+const AFTER_LOGIN = 'atelier-apres-connexion';
 const isAnon = () => C.user && (C.user.is_anonymous || !C.user.email && !(C.user.identities || []).length);
 const rerender = () => { const t = A.view.type; if (['reglages', 'progres', 'home'].includes(t)) A.renderView(); };
 const say = (text, ok) => { C.msg = { text, ok }; rerender(); };
@@ -47,10 +58,20 @@ async function onSession(session){
   C.ready = true; C.board = null;
   rerender();
 }
-sb.auth.getSession().then(({ data }) => onSession(data.session));
+sb.auth.getSession().then(async ({ data }) => {
+  // Retour de Google : on retire ?code=… ou ?error=… de l'adresse, et on revient sur Paramètres.
+  let back = false;
+  try { back = !!localStorage.getItem(AFTER_LOGIN); localStorage.removeItem(AFTER_LOGIN); } catch(_) {}
+  if (new URLSearchParams(location.search).has('code')) history.replaceState(history.state, '', location.pathname + location.hash);
+  if (authErr) C.msg = { text:/already|linked/i.test(authErr)
+    ? 'Ce compte Google est déjà utilisé par un autre compte de l’Atelier. Choisis un autre compte Google pour sécuriser celui-ci.'
+    : 'Connexion Google impossible : ' + esc(authErr) };
+  await onSession(data.session);
+  if ((back || authErr) && A.view.type !== 'reglages') A.go('reglages');
+});
 // Le bouton Google n'apparaît que si Google est activé dans Supabase (Authentication → Providers).
 fetch(cfg.supabaseUrl + '/auth/v1/settings', { headers:{ apikey:cfg.supabaseKey } })
-  .then(r => r.json()).then(s => { C.google = !!(s.external && s.external.google); if (C.google) rerender(); }).catch(() => {});
+  .then(r => r.json()).then(s => { C.google = !!(s.external && s.external.google); }).catch(() => { C.google = false; }).then(rerender);
 sb.auth.onAuthStateChange((ev, session) => { if (ev === 'SIGNED_IN' || ev === 'SIGNED_OUT' || ev === 'USER_UPDATED') onSession(session); });
 
 /* ---------- Synchronisation ---------- */
@@ -108,6 +129,7 @@ async function join(pseudo, code){
 }
 async function withGoogle(){
   const opts = { provider:'google', options:{ redirectTo:redirect() } };
+  try { localStorage.setItem(AFTER_LOGIN, '1'); } catch(_) {}
   const { error } = C.user && isAnon() ? await sb.auth.linkIdentity(opts) : await sb.auth.signInWithOAuth(opts);
   if (error) say('Connexion Google impossible : ' + esc(error.message));
 }
@@ -141,9 +163,9 @@ const joinForm = (p = {}) => `<form class="cloud-form" data-cloud-form="join">
     <label class="field"><span>Ton pseudo</span><input name="pseudo" maxlength="24" autocomplete="nickname" value="${esc(p.pseudo || '')}" placeholder="Par exemple PythonNinja" required><small>C'est lui qui apparaît dans le classement. Jamais ton e-mail.</small></label>
     <label class="field"><span>Code de ta classe</span><input name="classe" maxlength="20" value="${esc(p.classe || pendingInvite() || DEFAULT_CLASS)}" placeholder="${DEFAULT_CLASS}" required autocapitalize="characters"><small>Notre classe : <b>${DEFAULT_CLASS}</b> (Computer Science, promo 2028). Laisse ce code, il suffit de choisir ton pseudo.</small></label>
     <div class="actions"><button class="btn" type="submit"${C.busy ? ' disabled' : ''}>${p.pseudo ? 'Enregistrer' : 'Rejoindre ma classe'}</button></div></form>`;
-const linkBlock = title => `<h3 class="memo-t">${title}</h3>
-    ${C.google ? `<div class="actions"><button type="button" class="btn ghost" data-cloud="google">Continuer avec Google</button></div>` : ''}
-    <form class="cloud-form" data-cloud-form="email"><label class="field"><span>${C.google ? 'Ou avec un lien par e-mail' : 'Avec un lien par e-mail'}</span><input name="email" type="email" autocomplete="email" placeholder="prenom@exemple.fr" required></label><div class="actions"><button class="btn ghost" type="submit"${C.busy ? ' disabled' : ''}>Recevoir le lien</button></div></form>`;
+// Google quand il est activé ; le lien par e-mail ne sert que de secours si Google ne l'est pas.
+const linkBlock = (title, intro) => C.google === null ? '' : `<h3 class="memo-t">${title}</h3>${intro ? `<p class="small">${intro}</p>` : ''}
+    ${C.google ? `<div class="actions"><button type="button" class="btn" data-cloud="google">Continuer avec Google</button></div>` : `<form class="cloud-form" data-cloud-form="email"><label class="field"><span>Avec un lien par e-mail</span><input name="email" type="email" autocomplete="email" placeholder="prenom@exemple.fr" required></label><div class="actions"><button class="btn ghost" type="submit"${C.busy ? ' disabled' : ''}>Recevoir le lien</button></div></form>`}`;
 // Déconnexion en deux temps : un compte sans e-mail ni Google est perdu pour de bon une fois déconnecté.
 // « Annuler » prend la place du premier bouton, pour qu'un double appui ne déconnecte pas.
 const logoutHTML = () => !C.confirmOut
@@ -154,14 +176,15 @@ const logoutHTML = () => !C.confirmOut
     <div class="actions"><button type="button" class="btn ghost" data-cloud="logout-no">Annuler</button><button type="button" class="btn danger" data-cloud="logout">Oui, me déconnecter</button></div>`;
 A.ext.accountHTML = () => {
   if (!C.ready) return `<p class="small">Connexion…</p>`;
-  if (!C.user) return `${msgHTML()}<p>Rejoins la classe CS28 pour sauvegarder ta progression en ligne et apparaître dans le classement de la semaine. Ça prend 10 secondes, sans e-mail.</p>${joinForm()}${linkBlock('Tu as déjà un compte sur un autre appareil ?')}`;
+  if (!C.user) return `${msgHTML()}<p>Rejoins la classe CS28 pour sauvegarder ta progression en ligne et apparaître dans le classement de la semaine. Ça prend 10 secondes, sans e-mail.</p>${joinForm()}${linkBlock('Tu as déjà rejoint la classe sur un autre téléphone ?', 'Si tu as relié ton compte à Google, reconnecte-toi ici pour retrouver ta progression.')}`;
   if (!C.profile) return `${msgHTML()}<p>Tu es connecté. Choisis ton pseudo et ta classe pour apparaître dans le classement.</p>${joinForm()}${logoutHTML()}`;
   const anon = isAnon();
   return `${msgHTML()}<p class="ok-line"><span>Connecté : <b>${esc(C.profile.pseudo)}</b>, classe <b>${esc(C.profile.classe)}</b>. Ta progression est sauvegardée en ligne.</span></p>
-    <p class="small">Lien d'invitation pour ta classe : <code>${esc(inviteLink(C.profile.classe))}</code></p>
-    <div class="actions"><button type="button" class="btn ghost" data-cloud="copy-invite">Copier le lien d'invitation</button></div>
+    ${anon ? `<div class="hint"><b>Important :</b> relie ton compte à Google pour le retrouver sur n'importe quel téléphone. Sans ça, si tu changes de téléphone ou effaces ton navigateur, ta progression est perdue.</div>${linkBlock('Sécuriser mon compte')}` : `<p class="small">Compte relié à ${esc(C.user.email || 'Google')}. Tu peux te connecter sur n'importe quel appareil.</p>`}
+    <h3 class="memo-t">Inviter des camarades</h3>
+    <p class="small">Envoie ce lien à tes camarades : la classe ${esc(C.profile.classe)} sera déjà remplie pour eux.<br><code>${esc(inviteLink(C.profile.classe))}</code></p>
+    <div class="actions"><button type="button" class="btn ghost" data-cloud="copy-invite">Inviter des camarades</button></div>
     <details class="later"><summary>Modifier mon pseudo ou ma classe</summary>${joinForm(C.profile)}</details>
-    ${anon ? `<div class="hint"><b>Important :</b> ton compte n'est relié à aucun e-mail. Si tu changes de téléphone ou effaces ton navigateur, tu ne pourras pas le retrouver. Relie-le maintenant :</div>${linkBlock('Sécuriser mon compte')}` : `<p class="small">Compte relié à ${esc(C.user.email || 'Google')}. Tu peux te connecter sur n'importe quel appareil.</p>`}
     ${logoutHTML()}`;
 };
 A.ext.boardHTML = () => {

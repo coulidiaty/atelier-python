@@ -15,7 +15,7 @@ Sans cette étape, le site marche quand même : la progression reste dans le nav
 
 1. Crée un projet gratuit sur [supabase.com](https://supabase.com).
 2. **SQL Editor** : colle le contenu de `supabase/schema.sql` et clique sur **Run**.
-3. **Authentication → Sign In / Providers** : active **Allow anonymous sign-ins**, **Email**, et **Allow manual linking** (pour qu'un élève puisse relier son compte à un e-mail ou à Google). Pour Google, il faut aussi un identifiant OAuth Google : suis le guide lié dans cette page.
+3. **Authentication → Sign In / Providers** : active **Allow anonymous sign-ins**, **Email**, et **Allow manual linking** (pour qu'un élève puisse relier son compte à un e-mail ou à Google). Pour Google, il faut aussi un identifiant OAuth Google : suis le guide lié dans cette page. Tant que Google n'est pas activé, le bouton « Continuer avec Google » n'apparaît pas sur le site.
 4. **Authentication → URL Configuration** : mets l'adresse du site (`https://TON-PSEUDO.github.io/atelier-python/`) dans *Site URL* et dans *Redirect URLs*.
 5. **Project Settings → API** : copie la *Project URL* et la clé *anon public* dans `config.js`, puis publie (`git commit` et `git push`).
 

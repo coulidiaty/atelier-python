@@ -23,7 +23,7 @@ if (!cfg.supabaseUrl || !cfg.supabaseKey || !window.supabase) {
 }
 
 const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } });
-const C = { user:null, profile:null, ready:false, board:null, boardMode:'semaine', boardErr:null, msg:null, busy:false, queue:0 };
+const C = { user:null, profile:null, ready:false, board:null, boardMode:'semaine', boardErr:null, msg:null, busy:false, queue:0, google:false, confirmOut:false };
 const redirect = () => location.origin + location.pathname + '#reglages';
 const isAnon = () => C.user && (C.user.is_anonymous || !C.user.email && !(C.user.identities || []).length);
 const rerender = () => { const t = A.view.type; if (['reglages', 'progres', 'home'].includes(t)) A.renderView(); };
@@ -31,11 +31,15 @@ const say = (text, ok) => { C.msg = { text, ok }; rerender(); };
 
 /* ---------- Session et profil ---------- */
 async function onSession(session){
+  const prev = C.user && C.user.id;
   C.user = session ? session.user : null;
-  C.profile = null;
+  C.confirmOut = false;
+  if (!C.user || C.user.id !== prev) C.profile = null;
   if (C.user) {
+    // Pendant « Rejoindre ma classe », cette lecture peut partir avant l'enregistrement du profil :
+    // un résultat vide ne doit pas effacer le profil que join() vient de poser.
     const { data } = await sb.from('profiles').select('pseudo, classe').eq('id', C.user.id).maybeSingle();
-    C.profile = data || null;
+    if (data) C.profile = data;
     await pull();
     try { if (C.profile && C.profile.classe === pendingInvite()) localStorage.removeItem('atelier-invite'); } catch(_) {}
   }
@@ -43,6 +47,9 @@ async function onSession(session){
   rerender();
 }
 sb.auth.getSession().then(({ data }) => onSession(data.session));
+// Le bouton Google n'apparaît que si Google est activé dans Supabase (Authentication → Providers).
+fetch(cfg.supabaseUrl + '/auth/v1/settings', { headers:{ apikey:cfg.supabaseKey } })
+  .then(r => r.json()).then(s => { C.google = !!(s.external && s.external.google); if (C.google) rerender(); }).catch(() => {});
 sb.auth.onAuthStateChange((ev, session) => { if (ev === 'SIGNED_IN' || ev === 'SIGNED_OUT' || ev === 'USER_UPDATED') onSession(session); });
 
 /* ---------- Synchronisation ---------- */
@@ -134,19 +141,27 @@ const joinForm = (p = {}) => `<form class="cloud-form" data-cloud-form="join">
     <label class="field"><span>Code de ta classe</span><input name="classe" maxlength="20" value="${esc(p.classe || pendingInvite())}" placeholder="Par exemple L2-INFO-B" required autocapitalize="characters"><small>Le même code pour toute la classe. Ton délégué ou ton prof peut le choisir.</small></label>
     <div class="actions"><button class="btn" type="submit"${C.busy ? ' disabled' : ''}>${p.pseudo ? 'Enregistrer' : 'Rejoindre ma classe'}</button></div></form>`;
 const linkBlock = title => `<h3 class="memo-t">${title}</h3>
-    <div class="actions"><button type="button" class="btn ghost" data-cloud="google">Continuer avec Google</button></div>
-    <form class="cloud-form" data-cloud-form="email"><label class="field"><span>Ou avec un lien par e-mail</span><input name="email" type="email" autocomplete="email" placeholder="prenom@exemple.fr" required></label><div class="actions"><button class="btn ghost" type="submit"${C.busy ? ' disabled' : ''}>Recevoir le lien</button></div></form>`;
+    ${C.google ? `<div class="actions"><button type="button" class="btn ghost" data-cloud="google">Continuer avec Google</button></div>` : ''}
+    <form class="cloud-form" data-cloud-form="email"><label class="field"><span>${C.google ? 'Ou avec un lien par e-mail' : 'Avec un lien par e-mail'}</span><input name="email" type="email" autocomplete="email" placeholder="prenom@exemple.fr" required></label><div class="actions"><button class="btn ghost" type="submit"${C.busy ? ' disabled' : ''}>Recevoir le lien</button></div></form>`;
+// Déconnexion en deux temps : un compte sans e-mail ni Google est perdu pour de bon une fois déconnecté.
+// « Annuler » prend la place du premier bouton, pour qu'un double appui ne déconnecte pas.
+const logoutHTML = () => !C.confirmOut
+  ? `<div class="actions"><button type="button" class="btn ghost" data-cloud="logout-ask">Se déconnecter</button></div>`
+  : `<div class="hint">${isAnon()
+      ? '<b>Attention :</b> ton compte n’est relié à aucun e-mail. Si tu te déconnectes, tu ne pourras plus le retrouver, ni ta place dans le classement.'
+      : `Tu pourras te reconnecter avec ${esc(C.user.email || 'Google')}.`}</div>
+    <div class="actions"><button type="button" class="btn ghost" data-cloud="logout-no">Annuler</button><button type="button" class="btn danger" data-cloud="logout">Oui, me déconnecter</button></div>`;
 A.ext.accountHTML = () => {
   if (!C.ready) return `<p class="small">Connexion…</p>`;
   if (!C.user) return `${msgHTML()}<p>Rejoins ta classe pour sauvegarder ta progression en ligne et apparaître dans le classement de la semaine. Ça prend 10 secondes, sans e-mail.</p>${joinForm()}${linkBlock('Tu as déjà un compte sur un autre appareil ?')}`;
-  if (!C.profile) return `${msgHTML()}<p>Tu es connecté. Choisis ton pseudo et ta classe pour apparaître dans le classement.</p>${joinForm()}<div class="actions"><button type="button" class="btn ghost" data-cloud="logout">Se déconnecter</button></div>`;
+  if (!C.profile) return `${msgHTML()}<p>Tu es connecté. Choisis ton pseudo et ta classe pour apparaître dans le classement.</p>${joinForm()}${logoutHTML()}`;
   const anon = isAnon();
-  return `${msgHTML()}<p class="ok-line">Connecté : <b>${esc(C.profile.pseudo)}</b>, classe <b>${esc(C.profile.classe)}</b>. Ta progression est sauvegardée en ligne.</p>
+  return `${msgHTML()}<p class="ok-line"><span>Connecté : <b>${esc(C.profile.pseudo)}</b>, classe <b>${esc(C.profile.classe)}</b>. Ta progression est sauvegardée en ligne.</span></p>
     <p class="small">Lien d'invitation pour ta classe : <code>${esc(inviteLink(C.profile.classe))}</code></p>
     <div class="actions"><button type="button" class="btn ghost" data-cloud="copy-invite">Copier le lien d'invitation</button></div>
     <details class="later"><summary>Modifier mon pseudo ou ma classe</summary>${joinForm(C.profile)}</details>
-    ${anon ? `<div class="hint"><b>Important :</b>ton compte n'est relié à aucun e-mail. Si tu changes de téléphone ou effaces ton navigateur, tu ne pourras pas le retrouver. Relie-le maintenant :</div>${linkBlock('Sécuriser mon compte')}` : `<p class="small">Compte relié à ${esc(C.user.email || 'Google')}. Tu peux te connecter sur n'importe quel appareil.</p>`}
-    <div class="actions"><button type="button" class="btn ghost" data-cloud="logout">Se déconnecter</button></div>`;
+    ${anon ? `<div class="hint"><b>Important :</b> ton compte n'est relié à aucun e-mail. Si tu changes de téléphone ou effaces ton navigateur, tu ne pourras pas le retrouver. Relie-le maintenant :</div>${linkBlock('Sécuriser mon compte')}` : `<p class="small">Compte relié à ${esc(C.user.email || 'Google')}. Tu peux te connecter sur n'importe quel appareil.</p>`}
+    ${logoutHTML()}`;
 };
 A.ext.boardHTML = () => {
   if (!C.ready) return `<p class="small">Chargement…</p>`;
@@ -179,6 +194,7 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('[data-cloud]'); if (!b) return;
   const k = b.dataset.cloud;
   if (k === 'google') withGoogle();
+  if (k === 'logout-ask' || k === 'logout-no') { C.confirmOut = k === 'logout-ask'; rerender(); }
   if (k === 'logout') signOut();
   if (k === 'refresh') { C.board = null; loadBoard(); A.renderView(); }
   if (k === 'mode-semaine' || k === 'mode-total') { C.boardMode = k.slice(5); C.board = null; A.renderView(); }

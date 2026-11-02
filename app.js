@@ -638,7 +638,7 @@ function reglagesHTML(){
     <label class="pref sw"><input type="checkbox" data-set="sound"${S.settings.sound ? ' checked' : ''}><span><b>Sons</b>Petits sons quand tu réussis</span></label>
     <label class="pref sw"><input type="checkbox" data-set="motion"${S.settings.motion ? ' checked' : ''}><span><b>Animations</b>Confettis et effets</span></label>
   </div></section>
-  <section class="step"><div class="who"></div><div class="bubble"><h2>Mes données</h2><p class="small">Tout recommencer efface ta progression sur cet appareil.</p><div class="actions" id="reset-zone"><button type="button" class="btn ghost danger" data-act2="reset-ask">Tout recommencer</button></div></div></section>`;
+  <section class="step"><div class="who"></div><div class="bubble"><h2>Mes données</h2><p class="small">Ce qui est enregistré et comment supprimer ton compte : <a href="confidentialite.html">confidentialité et conditions d'utilisation</a>.</p><p class="small">Tout recommencer efface ta progression sur cet appareil.</p><div class="actions" id="reset-zone"><button type="button" class="btn ghost danger" data-act2="reset-ask">Tout recommencer</button></div></div></section>`;
 }
 function renderView(){
   const v = view.type;

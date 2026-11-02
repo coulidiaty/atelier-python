@@ -140,6 +140,8 @@ Supabase Realtime **Presence**, sur le canal `en-ligne`, sans table. Chaque appa
 - **Saisie effacée** : un nouveau rendu pendant la saisie vide les champs. `rerender()` dans `cloud.js` remet ce que l'élève tapait.
 - **Appareil partagé** : sans `owner`, un nouvel élève récupérait la progression et les XP du précédent.
 - **Déconnexion d'un compte anonyme** : le compte est perdu pour toujours. La déconnexion se fait donc en deux temps, avec un avertissement.
+- **Guillemets de l'iPhone** : le clavier remplace `"` par `“ ”`, `--` par `—` et `...` par `…`. `straight()` les remet droits avant d'exécuter le code et de corriger les trous. Aucune solution de référence ne doit utiliser ces caractères.
+- **Bouton « retour » du téléphone** : `go()` ajoute chaque vue à l'historique (`pushState`), et l'événement `hashchange` affiche la vue demandée. Sans ça, « retour » quittait le site.
 - **Inscriptions sur un même WiFi** : Supabase limite les comptes anonymes par heure et par adresse IP (réglé à 200, voir [EXPLOITATION.md](EXPLOITATION.md)).
 
 ## Règles pour éviter le code spaghetti

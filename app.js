@@ -253,7 +253,10 @@ function parseFill(tpl){
   parts.push({ text:tpl.slice(last) });
   return parts;
 }
-const fillNorm = s => s.trim().replace(/\s+/g, ' ');
+/* Le clavier de l'iPhone remplace " par “ ”, ' par ‘ ’, -- par — et ... par … (ponctuation intelligente).
+   Python et Java refusent ces caractères : on les remet droits avant d'exécuter ou de corriger. */
+const straight = s => s.replace(/[“”„]/g, '"').replace(/[‘’]/g, "'").replace(/—/g, '--').replace(/…/g, '...');
+const fillNorm = s => straight(s).trim().replace(/\s+/g, ' ');
 
 /* ================= Sons et célébrations ================= */
 let actx = null;
@@ -416,11 +419,12 @@ function chapLine(c, open){
   const doneAll = c.lessons.length && dn === c.lessons.length;
   let h = `<details class="chap${doneAll ? ' finished' : ''}"${open ? ' open' : ''}><summary><span class="cn">${doneAll ? I.check : c.n}</span><span>${c.title}</span><small>${dn}/${total}</small></summary><ul class="lessons">`;
   c.lessons.forEach((L, k) => {
+    const po = partOrder(c.part), prev = LES[po[po.indexOf(L.id) - 1]];
     const isCur = view.type === 'lesson' && view.id === L.id;
     const st = S.done[L.id] ? 'done' : available(L.id) ? '' : 'locked';
     const ico = S.done[L.id] ? I.check : st === 'locked' ? I.lock : (k + 1);
     h += st === 'locked'
-      ? `<li><span class="les locked" title="Termine la leçon d’avant pour l’ouvrir"><span class="ico">${ico}</span><span>${L.title}</span></span></li>`
+      ? `<li><button type="button" class="les locked" data-act2="locked" data-need="${prev ? esc(prev.num + ' · ' + prev.title) : ''}" title="Termine la leçon d’avant pour l’ouvrir"><span class="ico">${ico}</span><span>${L.title}</span></button></li>`
       : `<li><button type="button" class="les ${st}${isCur ? ' current' : ''}" data-go="l${L.id}"><span class="ico">${ico}</span><span>${L.title}</span></button></li>`;
   });
   return h + `</ul></details>`;
@@ -466,7 +470,7 @@ function ideHTML(lid, i){
   let mem = '';
   if (s.mem || (st.mem && st.mem.length)) mem = `<div class="memory"><div class="c-label">Mémoire de Python</div>${st.mem && st.mem.length ? memHTML(st.mem) : `<p class="mem-empty">Les boîtes apparaîtront ici après l'exécution.</p>`}</div>`;
   const rows = Math.max(4, st.code.split('\n').length + 1);
-  return `<div class="ide"><div class="ide-bar"><span class="file"><i></i>${s.file || 'main.py'}</span><span class="kbd">Ctrl + Entrée</span><button type="button" class="run" data-act="run" data-i="${i}">▶ Exécuter</button></div><textarea class="code" id="code-${i}" data-i="${i}" rows="${rows}" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Code Python de l'étape ${i + 1}"${s.t === 'code' ? ' data-nopaste="1"' : ''}>${esc(st.code)}</textarea><div class="console"><div class="c-label">Console</div>${con}</div>${mem}</div>`;
+  return `<div class="ide"><div class="ide-bar"><span class="file"><i></i>${s.file || 'main.py'}</span><span class="kbd">Ctrl + Entrée</span><button type="button" class="run" data-act="run" data-i="${i}">▶ Exécuter</button></div><textarea class="code" id="code-${i}" data-i="${i}" rows="${rows}" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Code Python de l'étape ${i + 1}"${s.t === 'code' ? ' data-nopaste="1"' : ''}>${esc(st.code)}</textarea><div class="console"><div class="c-label">Console</div>${con}</div>${mem}</div>`;
 }
 function snipHTML(code, lang){
   return lang ? `<div class="snip-wrap"><span class="lang lang-${lang}">${lang === 'java' ? 'Java' : 'Python'}</span><pre class="snippet">${esc(code)}</pre></div>` : `<pre class="snippet">${esc(code)}</pre>`;
@@ -482,7 +486,7 @@ function fillHTML(lid, i){
     if (p.text !== undefined) return esc(p.text);
     const k = b++, v = vals[k] || '', w = Math.max(3, ...p.blank.map(x => x.length)) + 1;
     const ok = st.fillOk && st.fillOk[k];
-    return `<input class="blank${ok === true ? ' good' : ok === false ? ' bad' : ''}" data-i="${i}" data-b="${k}" value="${esc(v)}" style="width:${w}ch" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Trou ${k + 1}"${st.done ? ' disabled' : ''}>`;
+    return `<input class="blank${ok === true ? ' good' : ok === false ? ' bad' : ''}" data-i="${i}" data-b="${k}" value="${esc(v)}" style="width:${w}ch" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" aria-label="Trou ${k + 1}"${st.done ? ' disabled' : ''}>`;
   }).join('');
   return `<div class="snip-wrap"><span class="lang lang-${s.lang || 'java'}">${s.lang === 'python' ? 'Python' : 'Java'}</span><pre class="snippet fill">${body}</pre></div>`;
 }
@@ -747,6 +751,8 @@ async function run(lid, i){
   if (con) con.querySelectorAll('.err-box').forEach(x => x.remove());
   const live = con && con.querySelector('.out');
   if (live) { live.textContent = ''; live.classList.remove('empty'); }
+  const fixed = straight(st.code);
+  if (fixed !== st.code) { st.code = fixed; const ta = $('code-' + i); if (ta) ta.value = fixed; }
   const r = await runPy(st.code, { live, ask:() => askIn(con) });
   if (tok !== runToken || view.type !== 'lesson' || view.id !== lid) { busy = false; return; }
   st.out = r.out; st.err = r.err; st.mem = r.mem;
@@ -819,13 +825,15 @@ function openSide(on){
   $('menu').setAttribute('aria-expanded', String(on));
 }
 const sideIsOpen = () => matchMedia('(min-width: 1000px)').matches ? S.settings.side !== 'closed' : $('side').classList.contains('open');
-function go(token){
+function go(token, fromHistory){
   if (pendingAsk) pendingAsk();
   runToken++;
   const simple = { fiches:'fiches', accueil:'home', progres:'progres', reglages:'reglages', pause:'pause' };
   if (simple[token]) view = { type:simple[token] };
   else { const id = token.slice(1); if (!LES[id] || !available(id)) return; view = { type:'lesson', id }; }
-  try { history.replaceState(null, '', '#' + token); } catch(_) {}
+  // Chaque changement de vue entre dans l'historique : le bouton « retour » du téléphone revient à la vue d'avant
+  // au lieu de quitter le site. Une vue rouverte par l'historique ne crée pas de nouvelle entrée.
+  try { if (fromHistory || location.hash === '#' + token) history.replaceState(null, '', '#' + token); else history.pushState(null, '', '#' + token); } catch(_) {}
   if (!matchMedia('(min-width: 1000px)').matches) { $('side').classList.remove('open'); $('scrim').classList.remove('open'); }
   renderAll(); window.scrollTo(0, 0);
 }
@@ -871,6 +879,7 @@ function bind(){
       if (k === 'share') share();
       if (k === 'track-bases' || k === 'track-poo') setTrack(k.slice(6));
       if (k === 'fiches-done' || k === 'fiches-all') { fichesAll = k === 'fiches-all'; renderView(); }
+      if (k === 'locked') toast(a2.dataset.need ? `Cette leçon s’ouvre quand tu as fini « ${a2.dataset.need} ». Tu peux aussi tout débloquer, en bas du menu.` : 'Cette leçon n’est pas encore ouverte.', '🔒');
       if (k === 'fiches-pdf') fichesPDF();
       if (k === 'reload') { save(); location.reload(); }
       if (k === 'fiches-copy') fichesCopy();
@@ -936,7 +945,7 @@ function bind(){
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; if (view.type === 'reglages') renderView(); });
   // Une adresse changée à la main ou par un lien (#reglages, #progres…) affiche la bonne vue.
   // go() utilise replaceState : il ne déclenche pas cet événement.
-  window.addEventListener('hashchange', () => go(location.hash.slice(1) || 'accueil'));
+  window.addEventListener('hashchange', () => go(location.hash.slice(1) || 'accueil', true));
   window.addEventListener('appinstalled', () => { installPrompt = null; toast('Appli installée. Retrouve Pyo sur ton écran d’accueil !', '📲'); });
 }
 

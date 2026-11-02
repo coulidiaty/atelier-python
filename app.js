@@ -97,7 +97,7 @@ function fresh(){
   return { done:{}, cur:{}, st:{}, unlock:false, xp:0, combo:0, last:null,
     streak:{ count:0, best:0, last:null, freezes:0 }, daily:{ date:null, xp:0, lessons:0 }, goal:50, goalDays:0,
     badges:{}, stats:{ first:0, graded:0, bestCombo:0 }, ls:{}, settings:{ sound:true, theme:'auto', motion:true, side:'open' }, updated:0,
-    owner:null, ownerLinked:false, track:null };
+    owner:null, ownerLinked:false, track:null, trackAt:0 };
 }
 /* Le compte à qui appartient la progression de cet appareil. Sur un ordinateur partagé, quand un autre compte se connecte
    après un compte relié à Google, on repart de zéro : sinon il récupérerait la progression (et les XP) du précédent.
@@ -149,7 +149,7 @@ function resumeLesson(){
   return (S.last && LES[S.last] && !S.done[S.last] && (track() !== 'poo' || partOf(S.last) === 'poo')) ? S.last : nextLesson();
 }
 function setTrack(p){
-  S.track = p; save();
+  S.track = p; S.trackAt = Date.now(); save();
   const id = nextIn(p) || partOrder(p)[0];
   if (id) go('l' + id); else renderAll();
 }
@@ -177,7 +177,8 @@ function mergeState(remote){
   L.goalDays = Math.max(L.goalDays, r.goalDays);
   for (const k of Object.keys(r.stats)) L.stats[k] = Math.max(L.stats[k] || 0, r.stats[k] || 0);
   L.ls = Object.assign({}, r.ls, L.ls);
-  if (!L.track && r.track) L.track = r.track;
+  // Parcours : le choix le plus récent l'emporte, d'un appareil à l'autre.
+  if (r.track && (!L.track || (r.trackAt || 0) > (L.trackAt || 0))) { L.track = r.track; L.trackAt = r.trackAt || 0; }
   save();
 }
 
@@ -923,7 +924,7 @@ function bind(){
     const t = e.target;
     if (t.name === 'goal') { S.goal = +t.value; save(); renderTop(); }
     else if (t.name === 'theme') { S.settings.theme = t.value; save(); applySettings(); }
-    else if (t.name === 'track') { S.track = t.value; save(); renderSide(); toast(t.value === 'poo' ? 'Parcours : directement la POO.' : 'Parcours : les bases, puis la POO.', '🧭'); }
+    else if (t.name === 'track') { S.track = t.value; S.trackAt = Date.now(); save(); renderSide(); toast(t.value === 'poo' ? 'Parcours : directement la POO.' : 'Parcours : les bases, puis la POO.', '🧭'); }
     else if (t.dataset.set) { S.settings[t.dataset.set] = t.checked; save(); if (t.checked && t.dataset.set === 'sound') sound('ok'); }
     else if (t.id === 'unlock') { S.unlock = t.checked; save(); renderSide(); }
   });

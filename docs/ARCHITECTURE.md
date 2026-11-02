@@ -92,7 +92,7 @@ Chaque point d'extension renvoie une chaîne HTML, ou `''` pour ne rien afficher
 | `badges`, `stats`, `ls` | badges, statistiques globales et par leçon |
 | `settings` | son, thème, animations, barre latérale |
 | `unlock` | « Tout débloquer » |
-| `track` | le parcours : `'bases'` (les bases puis la POO), `'poo'` (directement la POO), ou `null` (pas encore choisi, comme `'bases'`). Il décide de la leçon proposée par « Continuer » (`nextLesson`, `resumeLesson`) |
+| `track`, `trackAt` | le parcours, et quand il a été choisi (le choix le plus récent l'emporte entre appareils) : `'bases'` (les bases puis la POO), `'poo'` (directement la POO), ou `null` (pas encore choisi, comme `'bases'`). Il décide de la leçon proposée par « Continuer » (`nextLesson`, `resumeLesson`) |
 | `owner`, `ownerLinked` | le compte à qui appartient cette progression |
 | `updated` | date de la dernière sauvegarde |
 

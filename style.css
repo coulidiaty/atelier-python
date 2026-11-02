@@ -449,3 +449,7 @@ textarea.code{display:block;width:100%;border:0;resize:vertical;background:trans
 .chip-edit:hover{text-decoration:underline}
 /* Dans une leçon, une étape amenée à l'écran passe sous l'en-tête et la barre de progression, pas derrière. */
 body[data-view="lesson"] .step{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 135px)}
+/* Compteur « en ligne » dans la barre du haut */
+.hud-it.online-top{gap:5px;color:var(--muted)}
+.hud-it.online-top .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+.hud-it.online-top.wait{visibility:hidden}

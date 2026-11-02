@@ -185,10 +185,13 @@ const deviceId = (() => {
 C.online = 0;
 const onlineText = () => C.online <= 1 ? 'En ligne en ce moment : toi' : `${C.online} personnes en ligne, toi compris`;
 const showOnline = () => {
-  const el = document.getElementById('online'); if (!el) return;
-  el.classList.toggle('wait', !C.online);
-  el.querySelector('.online-n').textContent = onlineText();
+  const el = document.getElementById('online');
+  if (el) { el.classList.toggle('wait', !C.online); el.querySelector('.online-n').textContent = onlineText(); }
+  const top = document.getElementById('online-top');
+  if (top) { top.classList.toggle('wait', !C.online); top.querySelector('b').textContent = C.online; top.setAttribute('aria-label', onlineText()); top.title = onlineText(); }
 };
+// Dans la barre du haut, visible sur toutes les pages : un point vert et le nombre. Un appui affiche la phrase complète.
+A.ext.hudStart = () => `<button type="button" class="hud-it online-top${C.online ? '' : ' wait'}" id="online-top" data-cloud="online" aria-label="${onlineText()}" title="${onlineText()}"><i class="dot" aria-hidden="true"></i><b>${C.online}</b></button>`;
 const presence = sb.channel('en-ligne', { config:{ presence:{ key:deviceId } } });
 presence.on('presence', { event:'sync' }, () => { C.online = Object.keys(presence.presenceState()).length; showOnline(); });
 const beOnline = () => { if (document.visibilityState === 'visible') presence.track({ depuis:Date.now() }); else presence.untrack(); };
@@ -289,6 +292,7 @@ document.addEventListener('click', async e => {
     const i = C.editing && document.querySelector('#compte [data-cloud-form="join"] input[name="pseudo"]');
     if (i) { i.scrollIntoView({ block:'center' }); i.focus({ preventScroll:true }); i.select(); }
   }
+  if (k === 'online') A.toast(onlineText() + '.', '🟢');
   if (k === 'later') { try { localStorage.setItem(LATER, '1'); } catch(_) {} A.renderView(); }
   if (k === 'logout-ask' || k === 'logout-no') { C.confirmOut = k === 'logout-ask'; rerender(); }
   if (k === 'logout') signOut();

@@ -73,6 +73,7 @@ Un fichier par chapitre (`bases-1.js` … `poo-10.js`), qui appelle `Atelier.cha
 ### Points d'extension d'affichage (`Atelier.ext`)
 | Nom | Où | Fourni par |
 |---|---|---|
+| `hudStart()` | au début de la barre du haut, sur toutes les pages | `cloud.js` : le point vert et le nombre de personnes en ligne |
 | `homeTop()` | tout en haut de l'accueil | `cloud.js` : le compteur « en ligne », et la proposition de rejoindre CS28 |
 | `homeBanner()` | après le premier bloc de l'accueil | `cloud.js` : les membres de la classe (toucher son propre pseudo ouvre « Modifier mon pseudo ») |
 | `accountHTML()` | Paramètres → Compte et classe | `cloud.js` |

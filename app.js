@@ -421,7 +421,7 @@ function goalRing(size = 30){
 }
 function renderTop(){
   const lv = levelOf(S.xp), d = dailyXp(), sk = streakAlive();
-  $('hud').innerHTML = `<button type="button" class="hud-it streak${sk ? ' on' : ''}" data-go="progres" title="Série : ${sk} jour${sk > 1 ? 's' : ''} de suite">${I.flame}<b>${sk}</b></button>
+  $('hud').innerHTML = `${Atelier.ext.hudStart ? Atelier.ext.hudStart() : ''}<button type="button" class="hud-it streak${sk ? ' on' : ''}" data-go="progres" title="Série : ${sk} jour${sk > 1 ? 's' : ''} de suite">${I.flame}<b>${sk}</b></button>
     <button type="button" class="hud-it goal" data-go="progres" title="Objectif du jour : ${Math.min(d.xp, S.goal)} / ${S.goal} XP">${goalRing(28)}<span class="g-txt">${Math.min(d.xp, S.goal)}<small>/${S.goal}</small></span></button>
     <button type="button" class="hud-it lvl" data-go="progres" title="${S.xp} XP"><span class="lv-n">Niv. ${lv.n}</span><span class="lv-bar"><i style="width:${lv.pct * 100}%"></i></span></button>
     <button type="button" class="hud-it icon" data-go="reglages" aria-label="Paramètres">${I.gear}</button>`;

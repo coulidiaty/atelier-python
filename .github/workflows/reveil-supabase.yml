@@ -1,0 +1,24 @@
+# Réveille la base Supabase tous les 3 jours.
+# Un projet Supabase gratuit se met en pause après 7 jours sans activité (par exemple pendant les vacances) :
+# les comptes et le classement ne marcheraient plus jusqu'à une relance à la main.
+# La tâche lit l'adresse et la clé publique dans config.js, puis demande le nombre d'élèves de la classe.
+name: Réveil Supabase
+
+on:
+  schedule:
+    - cron: '17 6 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  reveil:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Interroger la base
+        run: |
+          URL=$(grep -o "supabaseUrl: *'[^']*'" config.js | cut -d"'" -f2)
+          KEY=$(grep -o "supabaseKey: *'[^']*'" config.js | cut -d"'" -f2)
+          curl --fail --silent --show-error -X POST "$URL/rest/v1/rpc/nb_eleves" \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+            -d '{"p_classe":"CS28"}'
+          echo

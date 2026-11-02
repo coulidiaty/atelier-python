@@ -134,7 +134,15 @@ const nextIn = p => partOrder(p).find(l => !S.done[l]);
 /* Le parcours choisi : 'bases' (les bases puis la POO), 'poo' (directement la POO), ou null (pas encore choisi : comme 'bases').
    En POO directe, les bases restent ouvertes pour réviser, mais l'accueil et « Continuer » mènent à la POO. */
 const nextLesson = () => S.track === 'poo' ? (nextIn('poo') || nextIn('bases')) : (nextIn('bases') || nextIn('poo'));
-const resumeLesson = () => (S.last && LES[S.last] && !S.done[S.last] && (S.track !== 'poo' || partOf(S.last) === 'poo')) ? S.last : nextLesson();
+/* « On reprend ? » : d'abord la leçon où l'élève a vraiment avancé (au moins une étape passée, pas finie),
+   la dernière ouverte de préférence. Une leçon seulement ouverte pour jeter un œil ne compte pas. */
+const inProgress = id => !!LES[id] && !S.done[id] && (S.cur[id] || 0) > 0;
+function resumeLesson(){
+  if (inProgress(S.last)) return S.last;
+  const begun = ORDER.filter(inProgress);
+  if (begun.length) return begun.find(l => partOf(l) === (S.track === 'poo' ? 'poo' : 'bases')) || begun[0];
+  return (S.last && LES[S.last] && !S.done[S.last] && (S.track !== 'poo' || partOf(S.last) === 'poo')) ? S.last : nextLesson();
+}
 function setTrack(p){
   S.track = p; save();
   const id = nextIn(p) || partOrder(p)[0];
@@ -605,7 +613,7 @@ function homeHTML(){
     const nx = nextIn(p.id);
     const show = curC && curC.part === p.id ? [curC] : [cs.find(c => c.lessons.some(L => !S.done[L.id])) || cs[cs.length - 1]];
     const dn = partOrder(p.id).filter(l => S.done[l]).length;
-    return `<div class="part"><div class="part-h"><b>${p.title}</b><span class="small">${dn ? `${dn} leçon${dn > 1 ? 's' : ''} terminée${dn > 1 ? 's' : ''}` : `${cs.length} chapitres · environ 15 min par leçon`}</span></div>${show.map(chapterCard).join('')}${nx && (!curC || curC.part !== p.id) ? `<div class="actions"><button type="button" class="btn ghost" data-act2="track-${p.id}">${dn ? 'Reprendre' : 'Commencer'} cette partie</button></div>` : ''}</div>`;
+    return `<div class="part"><div class="part-h"><b>${p.title}</b><span class="small">${dn ? `${dn} leçon${dn > 1 ? 's' : ''} terminée${dn > 1 ? 's' : ''}` : `${cs.length} chapitres · environ 15 min par leçon`}</span></div>${show.map(chapterCard).join('')}${nx && (!curC || curC.part !== p.id) ? `<div class="actions"><button type="button" class="btn ghost" data-go="l${nx}">${dn ? 'Reprendre' : 'Commencer'} cette partie</button></div>` : ''}</div>`;
   }).join('');
   const ext = Atelier.ext.homeBanner ? Atelier.ext.homeBanner() : '';
   const top = Atelier.ext.homeTop ? Atelier.ext.homeTop() : '';

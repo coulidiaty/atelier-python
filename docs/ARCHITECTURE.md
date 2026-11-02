@@ -128,7 +128,7 @@ Trois couches peuvent servir une ancienne version :
    - les pages : réseau d'abord, en revalidant toujours auprès du serveur (`cache:'no-cache'`), copie locale hors ligne ; une seule copie par page, sans les paramètres de l'adresse ;
    - les autres fichiers : copie locale tout de suite, mise à jour en arrière-plan. Un fichier versionné (`?v=`) ne garde que sa dernière version ;
    - les requêtes `no-store` vont toujours au réseau.
-3. **L'appli restée ouverte** (surtout installée sur iPhone) : `watchUpdates()` dans `app.js` relit `index.html` sans cache 10 s après le chargement, à chaque retour sur l'appli (au plus tous les quarts d'heure) et toutes les 30 minutes. Si ses `?v=` diffèrent, un bandeau propose « Mettre à jour ».
+3. **L'appli restée ouverte** (surtout installée sur iPhone) : `watchUpdates()` dans `app.js` relit `index.html` sans cache 10 s après le chargement, à chaque retour sur l'appli (au plus toutes les 2 minutes) et toutes les 30 minutes. Si ses `?v=` diffèrent, un bandeau propose « Mettre à jour ».
 
 D'où la règle : **toujours augmenter `?v=`** d'un fichier modifié. Les fichiers de `vendor/` n'ont pas de `?v=` : si on les remplace, il faut leur en ajouter un. Changer le nom `CACHE` dans `sw.js` vide le cache de tous les appareils.
 

@@ -1001,7 +1001,7 @@ function start(){
 const versionsOf = doc => [...doc.querySelectorAll('script[src*="?v="], link[href*="?v="]')].map(e => e.getAttribute('src') || e.getAttribute('href')).sort().join('|');
 let lastCheck = 0, updateShown = false;
 async function checkUpdate(){
-  if (updateShown || location.protocol === 'file:' || Date.now() - lastCheck < 15 * 60000) return;
+  if (updateShown || location.protocol === 'file:' || Date.now() - lastCheck < 2 * 60000) return;
   lastCheck = Date.now();
   try {
     const res = await fetch(location.pathname, { cache:'no-store' }); if (!res.ok) return;

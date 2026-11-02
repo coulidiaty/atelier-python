@@ -131,17 +131,20 @@ function available(lid){
 }
 const doneCount = () => ORDER.filter(l => S.done[l]).length;
 const nextIn = p => partOrder(p).find(l => !S.done[l]);
-/* Le parcours choisi : 'bases' (les bases puis la POO), 'poo' (directement la POO), ou null (pas encore choisi : comme 'bases').
+/* Le parcours choisi : 'bases' (les bases puis la POO), 'poo' (directement la POO), ou null (pas encore choisi).
+   Sans choix, on le déduit : un élève qui n'a avancé que dans la POO suit la POO, sinon les bases.
    En POO directe, les bases restent ouvertes pour réviser, mais l'accueil et « Continuer » mènent à la POO. */
-const nextLesson = () => S.track === 'poo' ? (nextIn('poo') || nextIn('bases')) : (nextIn('bases') || nextIn('poo'));
+const worked = p => partOrder(p).some(l => S.done[l] || (S.cur[l] || 0) > 0);
+const track = () => S.track || (worked('poo') && !worked('bases') ? 'poo' : 'bases');
+const nextLesson = () => track() === 'poo' ? (nextIn('poo') || nextIn('bases')) : (nextIn('bases') || nextIn('poo'));
 /* « On reprend ? » : d'abord la leçon où l'élève a vraiment avancé (au moins une étape passée, pas finie),
    la dernière ouverte de préférence. Une leçon seulement ouverte pour jeter un œil ne compte pas. */
 const inProgress = id => !!LES[id] && !S.done[id] && (S.cur[id] || 0) > 0;
 function resumeLesson(){
   if (inProgress(S.last)) return S.last;
   const begun = ORDER.filter(inProgress);
-  if (begun.length) return begun.find(l => partOf(l) === (S.track === 'poo' ? 'poo' : 'bases')) || begun[0];
-  return (S.last && LES[S.last] && !S.done[S.last] && (S.track !== 'poo' || partOf(S.last) === 'poo')) ? S.last : nextLesson();
+  if (begun.length) return begun.find(l => partOf(l) === track()) || begun[0];
+  return (S.last && LES[S.last] && !S.done[S.last] && (track() !== 'poo' || partOf(S.last) === 'poo')) ? S.last : nextLesson();
 }
 function setTrack(p){
   S.track = p; save();
@@ -709,7 +712,7 @@ function reglagesHTML(){
   <section class="step"><div class="who"></div><div class="bubble" id="compte"><h2>Compte et classe</h2>${account}</div></section>
   <section class="step"><div class="who"></div><div class="bubble"><h2>Installer l'appli</h2>${install}</div></section>
   <section class="step"><div class="who"></div><div class="bubble"><h2>Préférences</h2>
-    <div class="pref"><b>Mon parcours</b><div class="seg-group">${opt('track', 'bases', 'Les bases, puis la POO', S.track || 'bases')}${opt('track', 'poo', 'Directement la POO', S.track || 'bases')}</div><span class="small">En POO directe, l'accueil te mène à la POO, et les bases restent ouvertes pour réviser.</span></div>
+    <div class="pref"><b>Mon parcours</b><div class="seg-group">${opt('track', 'bases', 'Les bases, puis la POO', track())}${opt('track', 'poo', 'Directement la POO', track())}</div><span class="small">En POO directe, l'accueil te mène à la POO, et les bases restent ouvertes pour réviser.</span></div>
     <div class="pref"><b>Objectif du jour</b><div class="seg-group">${opt('goal', 20, 'Tranquille · 20 XP', S.goal)}${opt('goal', 50, 'Normal · 50 XP', S.goal)}${opt('goal', 100, 'Intense · 100 XP', S.goal)}</div></div>
     <div class="pref"><b>Thème</b><div class="seg-group">${opt('theme', 'auto', 'Automatique', S.settings.theme)}${opt('theme', 'light', 'Clair', S.settings.theme)}${opt('theme', 'dark', 'Sombre', S.settings.theme)}</div></div>
     <label class="pref sw"><input type="checkbox" data-set="sound"${S.settings.sound ? ' checked' : ''}><span><b>Sons</b>Petits sons quand tu réussis</span></label>

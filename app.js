@@ -578,7 +578,9 @@ function homeHTML(){
   const rl = resumeLesson(), lv = levelOf(S.xp), d = dailyXp(), sk = streakAlive();
   const started = doneCount() > 0 || Object.keys(S.cur).length > 0;
   let hero;
-  if (!started && !S.track && partOrder('poo').length) {
+  // Le choix du parcours reste proposé tant qu'aucune leçon n'est entamée : ouvrir une leçon sans passer d'étape ne compte pas.
+  const begun = doneCount() > 0 || Object.values(S.cur).some(c => c > 0);
+  if (!begun && !S.track && partOrder('poo').length) {
     hero = `<div class="resume"><p class="kicker">Par où commencer ?</p><h2>Tu connais déjà les bases de Python ?</h2><p class="small">Tu peux commencer par les bases, ou passer directement à la POO. Tout reste ouvert, et tu peux changer d'avis dans Paramètres.</p><div class="actions"><button type="button" class="btn big" data-act2="track-bases">Je débute en Python</button><button type="button" class="btn ghost" data-act2="track-poo">Je connais les bases : aller à la POO</button></div></div>`;
   } else if (rl) {
     const L = LES[rl], cur = S.cur[rl] || 0;

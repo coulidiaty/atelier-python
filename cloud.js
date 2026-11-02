@@ -118,6 +118,7 @@ async function join(pseudo){
   const code = CLASSE;
   pseudo = (pseudo || '').trim().slice(0, 24);
   if (pseudo.length < 2) return say('Choisis un pseudo d’au moins 2 caractères.');
+  const rename = !!C.profile;
   C.busy = true; rerender();
   try {
     if (!C.user) {
@@ -129,9 +130,10 @@ async function join(pseudo){
     if (error) throw error;
     C.profile = { pseudo, classe:code };
     await push(); await flushXp();
-    C.board = null; C.members = null; loadCount(); C.msg = { text:`Bienvenue dans la classe ${code}, ${esc(pseudo)} !`, ok:true };
-    A.toast(`Tu as rejoint la classe ${esc(code)}`, '🎒');
-  } catch (e) { C.msg = { text:'Impossible de rejoindre la classe pour l’instant : ' + esc(e.message || e) }; }
+    C.board = null; C.members = null; loadCount();
+    if (rename) { C.msg = { text:`Pseudo modifié : tu t’appelles maintenant ${esc(pseudo)}.`, ok:true }; A.toast('Pseudo modifié.', '✏️'); }
+    else { C.msg = { text:`Bienvenue dans la classe ${code}, ${esc(pseudo)} !`, ok:true }; A.toast(`Tu as rejoint la classe ${esc(code)}`, '🎒'); }
+  } catch (e) { C.msg = { text:(rename ? 'Impossible de modifier ton pseudo pour l’instant : ' : 'Impossible de rejoindre la classe pour l’instant : ') + esc(e.message || e) }; }
   C.busy = false; rerender();
 }
 async function withGoogle(){

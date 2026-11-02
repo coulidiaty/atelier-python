@@ -447,3 +447,5 @@ textarea.code{display:block;width:100%;border:0;resize:vertical;background:trans
 .members li:has(.chip-edit){padding:0}
 .chip-edit{border:0;background:none;font:inherit;color:inherit;padding:3px 11px;border-radius:99px;cursor:pointer}
 .chip-edit:hover{text-decoration:underline}
+/* Dans une leçon, une étape amenée à l'écran passe sous l'en-tête et la barre de progression, pas derrière. */
+body[data-view="lesson"] .step{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 135px)}

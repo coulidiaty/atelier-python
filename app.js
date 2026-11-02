@@ -825,6 +825,12 @@ function openSide(on){
   $('menu').setAttribute('aria-expanded', String(on));
 }
 const sideIsOpen = () => matchMedia('(min-width: 1000px)').matches ? S.settings.side !== 'closed' : $('side').classList.contains('open');
+// Une leçon commencée s'ouvre directement sur l'étape où l'élève s'était arrêté ; une leçon finie s'ouvre en haut, pour la relire.
+function scrollToCurrent(){
+  const cur = view.type === 'lesson' ? S.cur[view.id] || 0 : 0;
+  const here = cur > 0 && cur < LES[view.id].steps.length && $('st-' + cur);
+  if (here) here.scrollIntoView({ block:'start' }); else window.scrollTo(0, 0);
+}
 function go(token, fromHistory){
   if (pendingAsk) pendingAsk();
   runToken++;
@@ -835,7 +841,7 @@ function go(token, fromHistory){
   // au lieu de quitter le site. Une vue rouverte par l'historique ne crée pas de nouvelle entrée.
   try { if (fromHistory || location.hash === '#' + token) history.replaceState(null, '', '#' + token); else history.pushState(null, '', '#' + token); } catch(_) {}
   if (!matchMedia('(min-width: 1000px)').matches) { $('side').classList.remove('open'); $('scrim').classList.remove('open'); }
-  renderAll(); window.scrollTo(0, 0);
+  renderAll(); scrollToCurrent();
 }
 
 /* Carte à partager : une image avec le niveau, la série et les leçons. */
@@ -964,6 +970,7 @@ function start(){
   if (['fiches', 'progres', 'reglages', 'pause'].includes(h)) view = { type:h };
   else if (m && LES[m[1]] && available(m[1])) view = { type:'lesson', id:m[1] };
   renderAll();
+  if (view.type === 'lesson') scrollToCurrent();
   emit('start');
   if ('serviceWorker' in navigator && location.protocol !== 'file:' && !/\/dev\//.test(location.pathname)) navigator.serviceWorker.register('sw.js').catch(() => {});
   watchUpdates();

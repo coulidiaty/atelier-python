@@ -38,7 +38,17 @@ const C = { user:null, profile:null, ready:false, board:null, boardMode:'semaine
 const redirect = () => location.origin + location.pathname;
 const AFTER_LOGIN = 'atelier-apres-connexion';
 const isAnon = () => C.user && (C.user.is_anonymous || !C.user.email && !(C.user.identities || []).length);
-const rerender = () => { const t = A.view.type; if (['reglages', 'progres', 'home'].includes(t)) A.renderView(); };
+const rerender = () => {
+  if (!['reglages', 'progres', 'home'].includes(A.view.type)) return;
+  // Garder ce que l'élève est en train de taper (pseudo…) quand l'affichage se met à jour pendant la saisie.
+  const typed = [...document.querySelectorAll('[data-cloud-form] input[name]')].filter(i => i.value !== i.defaultValue)
+    .map(i => [i.form.dataset.cloudForm, i.name, i.value, i === document.activeElement]);
+  A.renderView();
+  for (const [f, n, v, focus] of typed) {
+    const i = document.querySelector(`[data-cloud-form="${f}"] input[name="${n}"]`);
+    if (i) { i.value = v; if (focus) i.focus({ preventScroll:true }); }
+  }
+};
 const say = (text, ok) => { C.msg = { text, ok }; rerender(); };
 
 /* ---------- Session et profil ---------- */
@@ -48,6 +58,7 @@ async function onSession(session){
   C.confirmOut = false;
   if (!C.user || C.user.id !== prev) C.profile = null;
   if (C.user) {
+    A.setOwner(C.user.id, !isAnon());
     // Pendant « Rejoindre ma classe », cette lecture peut partir avant l'enregistrement du profil :
     // un résultat vide ne doit pas effacer le profil que join() vient de poser.
     const { data } = await sb.from('profiles').select('pseudo, classe').eq('id', C.user.id).maybeSingle();

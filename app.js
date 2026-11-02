@@ -96,7 +96,15 @@ const emit = (ev, d) => (hooks[ev] || []).forEach(fn => { try { fn(d); } catch (
 function fresh(){
   return { done:{}, cur:{}, st:{}, unlock:false, xp:0, combo:0, last:null,
     streak:{ count:0, best:0, last:null, freezes:0 }, daily:{ date:null, xp:0, lessons:0 }, goal:50, goalDays:0,
-    badges:{}, stats:{ first:0, graded:0, bestCombo:0 }, ls:{}, settings:{ sound:true, theme:'auto', motion:true, side:'open' }, updated:0 };
+    badges:{}, stats:{ first:0, graded:0, bestCombo:0 }, ls:{}, settings:{ sound:true, theme:'auto', motion:true, side:'open' }, updated:0,
+    owner:null, ownerLinked:false };
+}
+/* Le compte à qui appartient la progression de cet appareil. Sur un ordinateur partagé, quand un autre compte se connecte
+   après un compte relié à Google, on repart de zéro : sinon il récupérerait la progression (et les XP) du précédent.
+   Un ancien compte sans Google, lui, ne peut plus être retrouvé : sa progression est reprise par le nouveau compte. */
+function setOwner(id, linked){
+  if (S.owner && S.owner !== id && S.ownerLinked) { const keep = S.settings; S = fresh(); S.settings = keep; }
+  S.owner = id; S.ownerLinked = !!linked; save();
 }
 function migrate(v){
   const f = fresh();
@@ -887,7 +895,7 @@ function start(){
 
 window.Atelier = {
   chapter, start, prepare, runPy, parseFill, fillNorm,
-  on, save, renderAll, renderView, renderTop, toast, go, exportState, mergeState, levelOf,
+  on, save, renderAll, renderView, renderTop, toast, go, exportState, mergeState, setOwner, levelOf,
   get state(){ return S; }, get view(){ return view; },
   get chapters(){ return CHAPTERS; }, get lessons(){ return LES; },
   ext:{},

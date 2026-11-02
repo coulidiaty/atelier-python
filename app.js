@@ -97,7 +97,7 @@ function fresh(){
   return { done:{}, cur:{}, st:{}, unlock:false, xp:0, combo:0, last:null,
     streak:{ count:0, best:0, last:null, freezes:0 }, daily:{ date:null, xp:0, lessons:0 }, goal:50, goalDays:0,
     badges:{}, stats:{ first:0, graded:0, bestCombo:0 }, ls:{}, settings:{ sound:true, theme:'auto', motion:true, side:'open' }, updated:0,
-    owner:null, ownerLinked:false };
+    owner:null, ownerLinked:false, track:null };
 }
 /* Le compte à qui appartient la progression de cet appareil. Sur un ordinateur partagé, quand un autre compte se connecte
    après un compte relié à Google, on repart de zéro : sinon il récupérerait la progression (et les XP) du précédent.
@@ -131,8 +131,15 @@ function available(lid){
 }
 const doneCount = () => ORDER.filter(l => S.done[l]).length;
 const nextIn = p => partOrder(p).find(l => !S.done[l]);
-const nextLesson = () => nextIn('bases') || nextIn('poo');
-const resumeLesson = () => (S.last && LES[S.last] && !S.done[S.last]) ? S.last : nextLesson();
+/* Le parcours choisi : 'bases' (les bases puis la POO), 'poo' (directement la POO), ou null (pas encore choisi : comme 'bases').
+   En POO directe, les bases restent ouvertes pour réviser, mais l'accueil et « Continuer » mènent à la POO. */
+const nextLesson = () => S.track === 'poo' ? (nextIn('poo') || nextIn('bases')) : (nextIn('bases') || nextIn('poo'));
+const resumeLesson = () => (S.last && LES[S.last] && !S.done[S.last] && (S.track !== 'poo' || partOf(S.last) === 'poo')) ? S.last : nextLesson();
+function setTrack(p){
+  S.track = p; save();
+  const id = nextIn(p) || partOrder(p)[0];
+  if (id) go('l' + id); else renderAll();
+}
 function dailyXp(){ if (S.daily.date !== today()) S.daily = { date:today(), xp:0, lessons:0 }; return S.daily; }
 function streakAlive(){ const s = S.streak; if (!s.last) return 0; const d = dayDiff(s.last, today()); return d <= 1 || (d === 2 && s.freezes > 0) ? s.count : 0; }
 
@@ -157,6 +164,7 @@ function mergeState(remote){
   L.goalDays = Math.max(L.goalDays, r.goalDays);
   for (const k of Object.keys(r.stats)) L.stats[k] = Math.max(L.stats[k] || 0, r.stats[k] || 0);
   L.ls = Object.assign({}, r.ls, L.ls);
+  if (!L.track && r.track) L.track = r.track;
   save();
 }
 
@@ -540,6 +548,7 @@ function endHTML(lid){
   let next;
   if (nx) next = `<button type="button" class="btn big" data-go="l${nx}">Continuer : ${LES[nx].title}</button>`;
   else if (L.chap.part === 'bases' && partOrder('poo').length) next = `<button type="button" class="btn big" data-go="l${partOrder('poo')[0]}">Bases terminées ! Passer à la POO</button>`;
+  else if (L.chap.part === 'poo' && nextIn('bases')) next = `<button type="button" class="btn big" data-go="l${nextIn('bases')}">POO terminée ! Revoir les bases</button>`;
   else next = `<span class="wait">Tu as terminé cette partie. Bravo !</span>`;
   return `<section class="step end" id="st-${L.steps.length}"><div class="who">${PYO}</div><div class="bubble">
     <p class="kind k-recap">Leçon terminée</p><h2>${ls.perfect ? 'Sans aucune faute, impressionnant !' : 'Bien joué, leçon bouclée !'}</h2>
@@ -569,7 +578,9 @@ function homeHTML(){
   const rl = resumeLesson(), lv = levelOf(S.xp), d = dailyXp(), sk = streakAlive();
   const started = doneCount() > 0 || Object.keys(S.cur).length > 0;
   let hero;
-  if (rl) {
+  if (!started && !S.track && partOrder('poo').length) {
+    hero = `<div class="resume"><p class="kicker">Par où commencer ?</p><h2>Tu connais déjà les bases de Python ?</h2><p class="small">Tu peux commencer par les bases, ou passer directement à la POO. Tout reste ouvert, et tu peux changer d'avis dans Paramètres.</p><div class="actions"><button type="button" class="btn big" data-act2="track-bases">Je débute en Python</button><button type="button" class="btn ghost" data-act2="track-poo">Je connais les bases : aller à la POO</button></div></div>`;
+  } else if (rl) {
     const L = LES[rl], cur = S.cur[rl] || 0;
     hero = `<div class="resume"><p class="kicker">${started ? 'On reprend ?' : 'Prêt à commencer ?'}</p><h2>${L.num} · ${L.title}</h2><p class="small">${cur ? `Tu t'étais arrêté à l'étape ${cur + 1} sur ${L.steps.length}.` : `${L.dur} environ. ${L.intro}`}</p><div class="actions"><button type="button" class="btn big" data-go="l${rl}">${started ? 'Continuer' : 'Commencer'}</button></div></div>`;
   } else hero = `<p>Tu as terminé toutes les leçons. Bravo, tu es ${lv.name} !</p>`;
@@ -588,7 +599,7 @@ function homeHTML(){
     const nx = nextIn(p.id);
     const show = curC && curC.part === p.id ? [curC] : [cs.find(c => c.lessons.some(L => !S.done[L.id])) || cs[cs.length - 1]];
     const dn = partOrder(p.id).filter(l => S.done[l]).length;
-    return `<div class="part"><div class="part-h"><b>${p.title}</b><span class="small">${dn ? `${dn} leçon${dn > 1 ? 's' : ''} terminée${dn > 1 ? 's' : ''}` : `${cs.length} chapitres · environ 15 min par leçon`}</span></div>${show.map(chapterCard).join('')}${nx && (!curC || curC.part !== p.id) ? `<div class="actions"><button type="button" class="btn ghost" data-go="l${nx}">${dn ? 'Reprendre' : 'Commencer'} cette partie</button></div>` : ''}</div>`;
+    return `<div class="part"><div class="part-h"><b>${p.title}</b><span class="small">${dn ? `${dn} leçon${dn > 1 ? 's' : ''} terminée${dn > 1 ? 's' : ''}` : `${cs.length} chapitres · environ 15 min par leçon`}</span></div>${show.map(chapterCard).join('')}${nx && (!curC || curC.part !== p.id) ? `<div class="actions"><button type="button" class="btn ghost" data-act2="track-${p.id}">${dn ? 'Reprendre' : 'Commencer'} cette partie</button></div>` : ''}</div>`;
   }).join('');
   const ext = Atelier.ext.homeBanner ? Atelier.ext.homeBanner() : '';
   const top = Atelier.ext.homeTop ? Atelier.ext.homeTop() : '';
@@ -617,12 +628,54 @@ function progresHTML(){
   <section class="step"><div class="who"></div><div class="bubble"><h2>Classement de la classe</h2>${board}</div></section>
   <section class="step"><div class="who"></div><div class="bubble"><h2>Badges · ${Object.keys(S.badges).length} sur ${BADGES.length}</h2><div class="badges">${badges}</div></div></section>`;
 }
+/* Mes fiches : celles des leçons terminées, ou toutes les fiches du cours. On peut les exporter en PDF ou en texte. */
+let fichesAll = false;
+const fichesList = () => fichesAll ? ORDER : ORDER.filter(l => S.done[l]);
+function fichesBody(ids){
+  return PARTS.map(p => {
+    const mine = ids.filter(l => partOf(l) === p.id); if (!mine.length) return '';
+    return `<h2 class="fiche-part">${p.title}</h2>` + mine.map(l => `<div class="fiche"><h3><span>${LES[l].num}</span>${LES[l].title}</h3><ul>${LES[l].recap.map(x => `<li>${x}</li>`).join('')}</ul></div>`).join('');
+  }).join('');
+}
 function fichesHTML(){
-  const done = ORDER.filter(l => S.done[l]);
-  const body = done.length
-    ? done.map(l => `<div class="fiche"><h3><span>${LES[l].num}</span>${LES[l].title}</h3><ul>${LES[l].recap.map(p => `<li>${p}</li>`).join('')}</ul></div>`).join('')
-    : `<p>Tu n'as pas encore de fiche. Termine ta première leçon et elle apparaîtra ici.</p>`;
-  return `<section class="step"><div class="who">${PYO}</div><div class="bubble"><p class="kicker">Révisions</p><h1>Mes fiches</h1><p>Chaque leçon terminée ajoute sa fiche ici. C'est ton résumé à relire avant un contrôle.</p></div></section><section class="step"><div class="who"></div><div class="bubble">${body}</div></section>`;
+  const ids = fichesList(), n = ORDER.filter(l => S.done[l]).length;
+  const tabs = `<div class="seg-tabs" role="group" aria-label="Fiches à afficher"><button type="button" data-act2="fiches-done" class="${fichesAll ? '' : 'on'}" aria-pressed="${!fichesAll}">Terminées (${n})</button><button type="button" data-act2="fiches-all" class="${fichesAll ? 'on' : ''}" aria-pressed="${fichesAll}">Toutes (${ORDER.length})</button></div>`;
+  const tools = ids.length ? `<div class="actions"><button type="button" class="btn ghost" data-act2="fiches-pdf">Télécharger en PDF</button><button type="button" class="btn ghost" data-act2="fiches-copy">Copier le texte</button></div>` : '';
+  const body = ids.length ? fichesBody(ids)
+    : `<p>Tu n'as pas encore de fiche terminée. Termine ta première leçon et elle apparaîtra ici, ou choisis « Toutes » pour lire les fiches de tout le cours.</p>`;
+  return `<section class="step"><div class="who">${PYO}</div><div class="bubble"><p class="kicker">Révisions</p><h1>Mes fiches</h1><p>Chaque leçon terminée ajoute sa fiche ici. C'est ton résumé à relire avant un contrôle. « Toutes » montre aussi les fiches des leçons pas encore faites.</p>${tabs}${tools}</div></section><section class="step"><div class="who"></div><div class="bubble">${body}</div></section>`;
+}
+function fichesTitle(){ return fichesAll ? 'Toutes les fiches' : 'Mes fiches terminées'; }
+/* PDF : on imprime une zone faite pour ça ; le téléphone ou l'ordinateur propose ensuite « Enregistrer en PDF ». */
+function fichesPDF(){
+  const ids = fichesList(); if (!ids.length) return;
+  document.querySelectorAll('#print-zone').forEach(z => z.remove());
+  const z = document.createElement('div'); z.id = 'print-zone';
+  z.innerHTML = `<h1>Atelier Python · ${fichesTitle()}</h1><p class="print-date">${new Date().toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' })} · ${ids.length} fiche${ids.length > 1 ? 's' : ''}</p>${fichesBody(ids)}`;
+  document.body.appendChild(z); document.body.classList.add('printing');
+  const done = () => { document.body.classList.remove('printing'); z.remove(); window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  // Pas de nettoyage au bout d'un délai : sur iPhone, print() rend la main tout de suite et l'aperçu est calculé ensuite.
+  // La zone reste cachée à l'écran (style.css) jusqu'à « afterprint » ou au prochain export.
+  setTimeout(() => { try { window.print(); } catch(_) { done(); toast('Impression impossible sur ce navigateur. Essaie « Copier le texte ».', '🖨️'); } }, 50);
+}
+/* Texte : les fiches en texte simple, à coller dans ses notes. */
+function fichesText(){
+  const plain = h => { const d = document.createElement('div'); d.innerHTML = h; return d.textContent.replace(/\s+/g, ' ').trim(); };
+  const ids = fichesList();
+  return `Atelier Python · ${fichesTitle()}\n` + PARTS.map(p => {
+    const mine = ids.filter(l => partOf(l) === p.id); if (!mine.length) return '';
+    return `\n=== ${p.title} ===\n` + mine.map(l => `\n${LES[l].num} · ${plain(LES[l].title)}\n` + LES[l].recap.map(x => `- ${plain(x)}`).join('\n')).join('\n');
+  }).join('') + '\n';
+}
+async function fichesCopy(){
+  const text = fichesText();
+  try { await navigator.clipboard.writeText(text); toast('Fiches copiées : colle-les dans tes notes.', '📋'); return; } catch(_) {}
+  const ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+  document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+  let ok = false; try { ok = document.execCommand('copy'); } catch(_) {}
+  ta.remove();
+  toast(ok ? 'Fiches copiées : colle-les dans tes notes.' : 'Copie impossible sur ce navigateur. Essaie « Télécharger en PDF ».', '📋');
 }
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -642,6 +695,7 @@ function reglagesHTML(){
   <section class="step"><div class="who"></div><div class="bubble" id="compte"><h2>Compte et classe</h2>${account}</div></section>
   <section class="step"><div class="who"></div><div class="bubble"><h2>Installer l'appli</h2>${install}</div></section>
   <section class="step"><div class="who"></div><div class="bubble"><h2>Préférences</h2>
+    <div class="pref"><b>Mon parcours</b><div class="seg-group">${opt('track', 'bases', 'Les bases, puis la POO', S.track || 'bases')}${opt('track', 'poo', 'Directement la POO', S.track || 'bases')}</div><span class="small">En POO directe, l'accueil te mène à la POO, et les bases restent ouvertes pour réviser.</span></div>
     <div class="pref"><b>Objectif du jour</b><div class="seg-group">${opt('goal', 20, 'Tranquille · 20 XP', S.goal)}${opt('goal', 50, 'Normal · 50 XP', S.goal)}${opt('goal', 100, 'Intense · 100 XP', S.goal)}</div></div>
     <div class="pref"><b>Thème</b><div class="seg-group">${opt('theme', 'auto', 'Automatique', S.settings.theme)}${opt('theme', 'light', 'Clair', S.settings.theme)}${opt('theme', 'dark', 'Sombre', S.settings.theme)}</div></div>
     <label class="pref sw"><input type="checkbox" data-set="sound"${S.settings.sound ? ' checked' : ''}><span><b>Sons</b>Petits sons quand tu réussis</span></label>
@@ -813,6 +867,10 @@ function bind(){
     if (a2) {
       const k = a2.dataset.act2;
       if (k === 'share') share();
+      if (k === 'track-bases' || k === 'track-poo') setTrack(k.slice(6));
+      if (k === 'fiches-done' || k === 'fiches-all') { fichesAll = k === 'fiches-all'; renderView(); }
+      if (k === 'fiches-pdf') fichesPDF();
+      if (k === 'fiches-copy') fichesCopy();
       if (k === 'install' && installPrompt) { installPrompt.prompt(); installPrompt.userChoice.finally(() => { installPrompt = null; renderView(); }); }
       if (k === 'reset-ask') $('reset-zone').innerHTML = `<span class="wait">Sûr ? Toute ta progression sur cet appareil sera effacée.</span><button type="button" class="btn danger" data-act2="reset">Oui, tout effacer</button><button type="button" class="btn ghost" data-act2="reset-no">Annuler</button>`;
       if (k === 'reset-no') renderView();
@@ -834,6 +892,7 @@ function bind(){
     const t = e.target;
     if (t.name === 'goal') { S.goal = +t.value; save(); renderTop(); }
     else if (t.name === 'theme') { S.settings.theme = t.value; save(); applySettings(); }
+    else if (t.name === 'track') { S.track = t.value; save(); renderSide(); toast(t.value === 'poo' ? 'Parcours : directement la POO.' : 'Parcours : les bases, puis la POO.', '🧭'); }
     else if (t.dataset.set) { S.settings[t.dataset.set] = t.checked; save(); if (t.checked && t.dataset.set === 'sound') sound('ok'); }
     else if (t.id === 'unlock') { S.unlock = t.checked; save(); renderSide(); }
   });

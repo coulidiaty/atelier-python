@@ -181,7 +181,7 @@ const deviceId = (() => {
   catch(_) { return Math.random().toString(36).slice(2); }
 })();
 C.online = 0;
-const onlineText = () => C.online <= 1 ? 'En ligne en ce moment : toi' : `${C.online} personnes en ligne en ce moment, toi compris`;
+const onlineText = () => C.online <= 1 ? 'En ligne en ce moment : toi' : `${C.online} personnes en ligne, toi compris`;
 const showOnline = () => {
   const el = document.getElementById('online'); if (!el) return;
   el.classList.toggle('wait', !C.online);

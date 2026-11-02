@@ -421,3 +421,22 @@ textarea.code{display:block;width:100%;border:0;resize:vertical;background:trans
 .online{display:inline-flex;align-items:center;gap:8px;justify-self:start;margin:0;padding:5px 12px;border-radius:99px;background:var(--surface);color:var(--muted);font-weight:800;font-size:.86rem;box-shadow:0 1px 2px rgb(0 0 0 / .06)}
 .online .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 25%,transparent)}
 .online.wait{visibility:hidden}
+.fiche-part{margin:22px 0 4px!important;font-size:.8rem!important;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+.fiche-part:first-child{margin-top:0!important}
+/* Export des fiches en PDF : seule la zone #print-zone est imprimée, en clair. */
+#print-zone{display:none}
+@media print{
+  body.printing{background:#FFFFFF!important;color:#111111!important}
+  body.printing::before{display:none}
+  body.printing > :not(#print-zone){display:none!important}
+  body.printing #print-zone{display:block;font:11.5pt/1.5 var(--f-body);color:#111111}
+  #print-zone h1{font-size:18pt;margin:0 0 2pt}
+  #print-zone .print-date{margin:0 0 10pt;color:#555555}
+  #print-zone .fiche-part{color:#1F6B57;font-size:10pt!important;margin:16pt 0 4pt!important}
+  #print-zone .fiche{break-inside:avoid;border-top:1px solid #CCCCCC;padding-top:8pt;margin-top:8pt}
+  #print-zone .fiche h3{margin:0 0 4pt;font-size:12pt}
+  #print-zone .fiche h3 span{color:#1F6B57;margin-right:6pt}
+  #print-zone ul{margin:0;padding-left:16pt}
+  #print-zone code{font-family:var(--f-code);background:#EEEEEE;color:#111111;padding:0 3pt;border-radius:3pt}
+  @page{margin:16mm}
+}

@@ -91,6 +91,7 @@ Chaque point d'extension renvoie une chaîne HTML, ou `''` pour ne rien afficher
 | `badges`, `stats`, `ls` | badges, statistiques globales et par leçon |
 | `settings` | son, thème, animations, barre latérale |
 | `unlock` | « Tout débloquer » |
+| `track` | le parcours : `'bases'` (les bases puis la POO), `'poo'` (directement la POO), ou `null` (pas encore choisi, comme `'bases'`). Il décide de la leçon proposée par « Continuer » (`nextLesson`, `resumeLesson`) |
 | `owner`, `ownerLinked` | le compte à qui appartient cette progression |
 | `updated` | date de la dernière sauvegarde |
 
@@ -168,3 +169,5 @@ Principes : un cours = un dossier de contenu + un moteur d'exécution déclaré 
 | 2026-11 | Flux PKCE pour Google | Le retour arrive dans `?code=…` et laisse le `#…` libre pour la navigation |
 | 2026-11 | Réveil de la base tous les 3 jours par GitHub Actions | Un projet gratuit se met en pause après 7 jours sans activité |
 | 2026-11 | Compteur « en ligne » avec Realtime Presence, et non une table | Temps réel, aucune écriture en base, aucune donnée personnelle |
+| 2026-11 | Parcours `track` : on peut sauter les bases, sans rien verrouiller | Les élèves qui connaissent Python vont droit à la POO ; les bases restent ouvertes pour réviser |
+| 2026-11 | Export des fiches par l'impression du navigateur (PDF) et le presse-papiers | Aucune bibliothèque PDF à embarquer ; marche sur iPhone, Android et ordinateur |

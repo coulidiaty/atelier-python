@@ -90,3 +90,12 @@ $$;
 revoke all on function public.classement(text, boolean) from public, anon;
 grant execute on function public.classement(text, boolean) to authenticated;
 
+
+-- Nombre d'élèves inscrits dans une classe : seulement un nombre, aucun pseudo.
+-- Lisible sans compte, pour afficher « 12 camarades sont déjà inscrits » sur l'accueil.
+create or replace function public.nb_eleves(p_classe text)
+returns integer language sql stable security definer set search_path = '' as $$
+  select count(*)::integer from public.profiles where classe = upper(p_classe);
+$$;
+revoke all on function public.nb_eleves(text) from public;
+grant execute on function public.nb_eleves(text) to anon, authenticated;

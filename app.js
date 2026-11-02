@@ -591,7 +591,8 @@ function homeHTML(){
     return `<div class="part"><div class="part-h"><b>${p.title}</b><span class="small">${dn ? `${dn} leçon${dn > 1 ? 's' : ''} terminée${dn > 1 ? 's' : ''}` : `${cs.length} chapitres · environ 15 min par leçon`}</span></div>${show.map(chapterCard).join('')}${nx && (!curC || curC.part !== p.id) ? `<div class="actions"><button type="button" class="btn ghost" data-go="l${nx}">${dn ? 'Reprendre' : 'Commencer'} cette partie</button></div>` : ''}</div>`;
   }).join('');
   const ext = Atelier.ext.homeBanner ? Atelier.ext.homeBanner() : '';
-  return `<section class="step"><div class="who">${PYO}</div><div class="bubble"><h1>${started ? 'Content de te revoir !' : 'Salut, moi c\'est Pyo.'}</h1>${started ? '' : `<p>Je vais t'apprendre les bases de Python, puis la programmation orientée objet en Python et en Java. Pas de gros cours à lire : je t'explique un petit bout, tu testes tout de suite, et si tu te trompes, on regarde pourquoi ensemble.</p>`}${hero}</div></section>
+  const top = Atelier.ext.homeTop ? Atelier.ext.homeTop() : '';
+  return `${top}<section class="step"><div class="who">${PYO}</div><div class="bubble"><h1>${started ? 'Content de te revoir !' : 'Salut, moi c\'est Pyo.'}</h1>${started ? '' : `<p>Je vais t'apprendre les bases de Python, puis la programmation orientée objet en Python et en Java. Pas de gros cours à lire : je t'explique un petit bout, tu testes tout de suite, et si tu te trompes, on regarde pourquoi ensemble.</p>`}${hero}</div></section>
   ${ext}
   <section class="step"><div class="who"></div><div class="bubble">${today3}</div></section>
   <section class="step"><div class="who"></div><div class="bubble"><h2>Ton parcours</h2>${parts}</div></section>

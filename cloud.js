@@ -27,7 +27,7 @@ if (authErr) {
 // Flux PKCE : au retour de Google, le site reçoit ?code=… dans l'adresse, et le #… de la page reste libre pour la navigation.
 const sb =window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce' } });
 // google : null tant qu'on ne sait pas encore si Google est activé dans Supabase.
-const C = { user:null, profile:null, ready:false, board:null, boardMode:'semaine', boardErr:null, msg:null, busy:false, queue:0, google:null, confirmOut:false };
+const C = { user:null, profile:null, ready:false, board:null, boardMode:'semaine', boardErr:null, msg:null, busy:false, queue:0, google:null, confirmOut:false, count:null, members:null };
 const redirect = () => location.origin + location.pathname;
 const AFTER_LOGIN = 'atelier-apres-connexion';
 const isAnon = () => C.user && (C.user.is_anonymous || !C.user.email && !(C.user.identities || []).length);
@@ -63,7 +63,7 @@ async function onSession(session){
     }
     await pull();
   }
-  C.ready = true; C.board = null;
+  C.ready = true; C.board = null; C.members = null;
   rerender();
 }
 sb.auth.getSession().then(async ({ data }) => {
@@ -129,7 +129,7 @@ async function join(pseudo){
     if (error) throw error;
     C.profile = { pseudo, classe:code };
     await push(); await flushXp();
-    C.board = null; C.msg = { text:`Bienvenue dans la classe ${code}, ${esc(pseudo)} !`, ok:true };
+    C.board = null; C.members = null; loadCount(); C.msg = { text:`Bienvenue dans la classe ${code}, ${esc(pseudo)} !`, ok:true };
     A.toast(`Tu as rejoint la classe ${esc(code)}`, '🎒');
   } catch (e) { C.msg = { text:'Impossible de rejoindre la classe pour l’instant : ' + esc(e.message || e) }; }
   C.busy = false; rerender();
@@ -155,6 +155,21 @@ async function signOut(){
   await sb.auth.signOut();
   C.msg = { text:'Tu es déconnecté. Ta progression reste aussi sur cet appareil.', ok:true };
 }
+// Le nombre d'inscrits (lisible sans compte) et la liste des membres (seulement pour les membres).
+async function loadCount(){
+  const { data, error } = await sb.rpc('nb_eleves', { p_classe:CLASSE });
+  if (!error) { C.count = data; rerender(); }
+}
+let membersLoading = false;
+async function loadMembers(){
+  if (membersLoading || !C.profile) return;
+  membersLoading = true;
+  const { data, error } = await sb.rpc('classement', { p_classe:CLASSE, p_semaine:false });
+  membersLoading = false;
+  C.members = error ? [] : (data || []);
+  if (A.view.type === 'home') rerender();
+}
+loadCount();
 async function loadBoard(){
   if (!C.profile || !C.profile.classe) return;
   C.boardErr = null;
@@ -205,10 +220,28 @@ A.ext.boardHTML = () => {
   else list = `<ol class="board">${C.board.map((r, i) => `<li class="${r.moi ? 'me' : ''}"><span class="rk">${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span><span class="nm">${esc(r.pseudo)}${r.moi ? ' (toi)' : ''}</span><span class="px">${r.xp} XP</span></li>`).join('')}</ol>`;
   return `<p class="small">Classe <b>${esc(C.profile.classe)}</b> · ${C.boardMode === 'semaine' ? 'remise à zéro chaque lundi' : 'XP total'}</p>${tabs}${list}<div class="actions"><button type="button" class="btn ghost" data-cloud="copy-invite">Inviter des camarades</button><button type="button" class="btn ghost" data-cloud="refresh">Actualiser</button></div>`;
 };
+const others = n => n === 1 ? '1 camarade est déjà inscrit' : `${n} camarades sont déjà inscrits`;
+// Tout en haut de l'accueil, tant qu'on n'est pas dans la classe : on PROPOSE de la rejoindre (jamais obligatoire).
+// « Plus tard » ferme la proposition sur cet appareil ; on peut toujours rejoindre depuis Paramètres.
+const LATER = 'atelier-classe-plus-tard';
+const saidLater = () => { try { return !!localStorage.getItem(LATER); } catch(_) { return false; } };
+A.ext.homeTop = () => {
+  if (!C.ready || C.profile || saidLater()) return '';
+  return `<section class="step"><div class="who"></div><div class="bubble banner" id="rejoindre"><p class="kicker">Ta classe</p><h2>Tu veux rejoindre la classe ${CLASSE} ?</h2>
+    <p>Computer Science, promo 2028.${C.count ? ` <b>${others(C.count)}</b>.` : ''} Dans la classe, tu vois tes camarades et le classement de la semaine, et ta progression est sauvegardée en ligne. C'est facultatif : le site marche aussi sans.</p>
+    ${msgHTML()}${joinForm()}
+    <div class="actions"><button type="button" class="btn ghost" data-cloud="later">Plus tard</button></div>
+    ${C.google && !C.user ? `<p class="small">Tu as déjà un compte relié à Google ? <button type="button" class="linkish" data-cloud="google">Te reconnecter avec Google</button></p>` : ''}</div></section>`;
+};
+// Après le premier bloc de l'accueil, une fois dans la classe : les membres de la classe.
 A.ext.homeBanner = () => {
-  if (!C.ready || C.profile) return '';
-  if (Object.values(A.state.done).some(Boolean)) return `<section class="step"><div class="who"></div><div class="bubble banner"><h2>Sauvegarde ta progression</h2><p>Rejoins la classe ${CLASSE} pour retrouver ta progression partout et entrer dans le classement.</p><div class="actions"><button type="button" class="btn ghost" data-go="reglages">Rejoindre la classe ${CLASSE}</button></div></div></section>`;
-  return '';
+  if (!C.ready || !C.profile) return '';
+  if (C.members === null) setTimeout(loadMembers, 0);
+  const list = C.members === null ? `<p class="small">Chargement de la classe…</p>`
+    : `<ul class="members">${C.members.map(r => `<li class="${r.moi ? 'me' : ''}">${esc(r.pseudo)}${r.moi ? ' (toi)' : ''}</li>`).join('')}</ul>`;
+  const n = C.members ? C.members.length : C.count;
+  return `<section class="step"><div class="who"></div><div class="bubble"><h2>Ta classe ${CLASSE}${n ? ` · ${n} élève${n > 1 ? 's' : ''}` : ''}</h2>${list}
+    <div class="actions"><button type="button" class="btn ghost" data-go="progres">Voir le classement</button><button type="button" class="btn ghost" data-cloud="copy-invite">Inviter des camarades</button></div></div></section>`;
 };
 
 document.addEventListener('submit', e => {
@@ -222,6 +255,7 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('[data-cloud]'); if (!b) return;
   const k = b.dataset.cloud;
   if (k === 'google') withGoogle();
+  if (k === 'later') { try { localStorage.setItem(LATER, '1'); } catch(_) {} A.renderView(); }
   if (k === 'logout-ask' || k === 'logout-no') { C.confirmOut = k === 'logout-ask'; rerender(); }
   if (k === 'logout') signOut();
   if (k === 'refresh') { C.board = null; loadBoard(); A.renderView(); }

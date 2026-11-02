@@ -414,3 +414,7 @@ textarea.code{display:block;width:100%;border:0;resize:vertical;background:trans
   .goal .g-txt{display:none}
 }
 @media (prefers-reduced-motion: reduce){ .lb-combo,.seg.now,.ov-pyo .pyo{animation:none} }
+.members{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 0;padding:0;list-style:none}
+.members li{background:var(--surface-2);border-radius:99px;padding:3px 11px;font-weight:700;font-size:.9rem}
+.members li.me{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent)}
+.linkish{border:0;background:none;padding:0;font:inherit;font-weight:800;color:var(--accent);text-decoration:underline;cursor:pointer}

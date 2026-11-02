@@ -74,7 +74,7 @@ Un fichier par chapitre (`bases-1.js` … `poo-10.js`), qui appelle `Atelier.cha
 | Nom | Où | Fourni par |
 |---|---|---|
 | `homeTop()` | tout en haut de l'accueil | `cloud.js` : le compteur « en ligne », et la proposition de rejoindre CS28 |
-| `homeBanner()` | après le premier bloc de l'accueil | `cloud.js` : les membres de la classe |
+| `homeBanner()` | après le premier bloc de l'accueil | `cloud.js` : les membres de la classe (toucher son propre pseudo ouvre « Modifier mon pseudo ») |
 | `accountHTML()` | Paramètres → Compte et classe | `cloud.js` |
 | `boardHTML()` | Progrès → Classement de la classe | `cloud.js` |
 

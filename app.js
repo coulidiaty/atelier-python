@@ -934,6 +934,9 @@ function bind(){
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (!matchMedia('(min-width: 1000px)').matches) openSide(false); document.querySelectorAll('.overlay').forEach(o => o.remove()); } });
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applySettings);
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; if (view.type === 'reglages') renderView(); });
+  // Une adresse changée à la main ou par un lien (#reglages, #progres…) affiche la bonne vue.
+  // go() utilise replaceState : il ne déclenche pas cet événement.
+  window.addEventListener('hashchange', () => go(location.hash.slice(1) || 'accueil'));
   window.addEventListener('appinstalled', () => { installPrompt = null; toast('Appli installée. Retrouve Pyo sur ton écran d’accueil !', '📲'); });
 }
 

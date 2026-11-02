@@ -27,7 +27,7 @@ if (authErr) {
 // Flux PKCE : au retour de Google, le site reçoit ?code=… dans l'adresse, et le #… de la page reste libre pour la navigation.
 const sb =window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce' } });
 // google : null tant qu'on ne sait pas encore si Google est activé dans Supabase.
-const C = { user:null, profile:null, ready:false, board:null, boardMode:'semaine', boardErr:null, msg:null, busy:false, queue:0, google:null, confirmOut:false, count:null, members:null };
+const C = { user:null, profile:null, ready:false, board:null, boardMode:'semaine', boardErr:null, msg:null, busy:false, queue:0, google:null, confirmOut:false, count:null, members:null, editing:false };
 const redirect = () => location.origin + location.pathname;
 const AFTER_LOGIN = 'atelier-apres-connexion';
 const isAnon = () => C.user && (C.user.is_anonymous || !C.user.email && !(C.user.identities || []).length);
@@ -48,7 +48,7 @@ const say = (text, ok) => { C.msg = { text, ok }; rerender(); };
 async function onSession(session){
   const prev = C.user && C.user.id;
   C.user = session ? session.user : null;
-  C.confirmOut = false;
+  C.confirmOut = false; C.editing = false;
   if (!C.user || C.user.id !== prev) C.profile = null;
   if (C.user) {
     A.setOwner(C.user.id, !isAnon());
@@ -128,13 +128,15 @@ async function join(pseudo){
     }
     const { error } = await sb.from('profiles').upsert({ id:C.user.id, pseudo, classe:code, updated_at:new Date().toISOString() });
     if (error) throw error;
-    C.profile = { pseudo, classe:code };
+    C.profile = { pseudo, classe:code }; C.editing = false;
     await push(); await flushXp();
     C.board = null; C.members = null; loadCount();
     if (rename) { C.msg = { text:`Pseudo modifié : tu t’appelles maintenant ${esc(pseudo)}.`, ok:true }; A.toast('Pseudo modifié.', '✏️'); }
     else { C.msg = { text:`Bienvenue dans la classe ${code}, ${esc(pseudo)} !`, ok:true }; A.toast(`Tu as rejoint la classe ${esc(code)}`, '🎒'); }
   } catch (e) { C.msg = { text:(rename ? 'Impossible de modifier ton pseudo pour l’instant : ' : 'Impossible de rejoindre la classe pour l’instant : ') + esc(e.message || e) }; }
   C.busy = false; rerender();
+  // Le message est en haut de la carte du compte : on l'amène à l'écran.
+  if (rename) { const el = document.getElementById('compte'); if (el) el.scrollIntoView({ block:'start', behavior:'smooth' }); }
 }
 async function withGoogle(){
   const opts = { provider:'google', options:{ redirectTo:redirect() } };
@@ -205,9 +207,9 @@ async function loadBoard(){
 
 /* ---------- Affichage ---------- */
 const msgHTML = () => C.msg ? `<p class="fb ${C.msg.ok ? 'ok' : 'ko'}">${C.msg.text}</p>` : '';
-const joinForm = (p = {}) => `<form class="cloud-form" data-cloud-form="join">
+const joinForm = (p = {}, extra = '') => `<form class="cloud-form" data-cloud-form="join">
     <label class="field"><span>Ton pseudo</span><input name="pseudo" maxlength="24" autocomplete="nickname" value="${esc(p.pseudo || '')}" placeholder="Par exemple PythonNinja" required><small>C'est lui qui apparaît dans le classement. Jamais ton e-mail.</small></label>
-    <div class="actions"><button class="btn" type="submit"${C.busy ? ' disabled' : ''}>${p.pseudo ? 'Enregistrer' : 'Rejoindre ma classe'}</button></div></form>`;
+    <div class="actions"><button class="btn" type="submit"${C.busy ? ' disabled' : ''}>${p.pseudo ? 'Enregistrer' : 'Rejoindre ma classe'}</button>${extra}</div></form>`;
 // Google quand il est activé ; le lien par e-mail ne sert que de secours si Google ne l'est pas.
 const linkBlock = (title, intro) => C.google === null ? '' : `<h3 class="memo-t">${title}</h3>${intro ? `<p class="small">${intro}</p>` : ''}
     ${C.google ? `<div class="actions"><button type="button" class="btn" data-cloud="google">Continuer avec Google</button></div>` : `<form class="cloud-form" data-cloud-form="email"><label class="field"><span>Avec un lien par e-mail</span><input name="email" type="email" autocomplete="email" placeholder="prenom@exemple.fr" required></label><div class="actions"><button class="btn ghost" type="submit"${C.busy ? ' disabled' : ''}>Recevoir le lien</button></div></form>`}`;
@@ -225,11 +227,11 @@ A.ext.accountHTML = () => {
   if (!C.profile) return `${msgHTML()}<p>Tu es connecté. Choisis ton pseudo pour apparaître dans le classement de la classe ${CLASSE}.</p>${joinForm()}${logoutHTML()}`;
   const anon = isAnon();
   return `${msgHTML()}<p class="ok-line"><span>Connecté : <b>${esc(C.profile.pseudo)}</b>, classe <b>${esc(C.profile.classe)}</b>. Ta progression est sauvegardée en ligne.</span></p>
+    ${C.editing ? joinForm(C.profile, `<button type="button" class="btn ghost" data-cloud="edit-no">Annuler</button>`) : `<div class="actions"><button type="button" class="btn ghost" data-cloud="edit-pseudo">✏️ Modifier mon pseudo</button></div>`}
     ${anon ? `<div class="hint"><b>Important :</b> relie ton compte à Google pour le retrouver sur n'importe quel téléphone. Sans ça, si tu changes de téléphone ou effaces ton navigateur, ta progression est perdue.</div>${linkBlock('Sécuriser mon compte')}` : `<p class="small">Compte relié à ${esc(C.user.email || 'Google')}. Tu peux te connecter sur n'importe quel appareil.</p>`}
     <h3 class="memo-t">Inviter des camarades</h3>
     <p class="small">Envoie ce lien à tes camarades de ${CLASSE} : <code>${esc(siteLink())}</code></p>
     <div class="actions"><button type="button" class="btn ghost" data-cloud="copy-invite">Inviter des camarades</button></div>
-    <details class="later"><summary>Modifier mon pseudo</summary>${joinForm(C.profile)}</details>
     ${logoutHTML()}`;
 };
 A.ext.boardHTML = () => {
@@ -263,7 +265,7 @@ A.ext.homeBanner = () => {
   if (!C.ready || !C.profile) return '';
   if (C.members === null) setTimeout(loadMembers, 0);
   const list = C.members === null ? `<p class="small">Chargement de la classe…</p>`
-    : `<ul class="members">${C.members.map(r => `<li class="${r.moi ? 'me' : ''}">${esc(r.pseudo)}${r.moi ? ' (toi)' : ''}</li>`).join('')}</ul>`;
+    : `<ul class="members">${C.members.map(r => r.moi ? `<li class="me"><button type="button" class="chip-edit" data-cloud="edit-pseudo" title="Modifier mon pseudo">${esc(r.pseudo)} (toi) ✏️</button></li>` : `<li>${esc(r.pseudo)}</li>`).join('')}</ul>`;
   const n = C.members ? C.members.length : C.count;
   return `<section class="step"><div class="who"></div><div class="bubble"><h2>Ta classe ${CLASSE}${n ? ` · ${n} élève${n > 1 ? 's' : ''}` : ''}</h2>${list}
     <div class="actions"><button type="button" class="btn ghost" data-go="progres">Voir le classement</button><button type="button" class="btn ghost" data-cloud="copy-invite">Inviter des camarades</button></div></div></section>`;
@@ -280,6 +282,12 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('[data-cloud]'); if (!b) return;
   const k = b.dataset.cloud;
   if (k === 'google') withGoogle();
+  if (k === 'edit-pseudo' || k === 'edit-no') {
+    C.editing = k === 'edit-pseudo'; C.msg = null;
+    if (C.editing && A.view.type !== 'reglages') A.go('reglages'); else rerender();
+    const i = C.editing && document.querySelector('#compte [data-cloud-form="join"] input[name="pseudo"]');
+    if (i) { i.scrollIntoView({ block:'center' }); i.focus({ preventScroll:true }); i.select(); }
+  }
   if (k === 'later') { try { localStorage.setItem(LATER, '1'); } catch(_) {} A.renderView(); }
   if (k === 'logout-ask' || k === 'logout-no') { C.confirmOut = k === 'logout-ask'; rerender(); }
   if (k === 'logout') signOut();
